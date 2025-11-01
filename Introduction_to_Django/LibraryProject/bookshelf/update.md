@@ -2,10 +2,18 @@
 
 ```python
 from bookshelf.models import Book
-b = Book.objects.get(title="1984")
-b.title = "Nineteen Eighty-Four"
-b.save()
-Book.objects.get(id=b.id).title
+
+# Retrieve the existing book
+book = Book.objects.get(title="1984")
+
+# Update the title
+book.title = "Nineteen Eighty-Four"
+book.save()
+
+# Verify the update
+book = Book.objects.get(id=book.id)
+book.title
+
 
 # Expected Output:
 # 'Nineteen Eighty-Four'
