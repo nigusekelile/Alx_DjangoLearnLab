@@ -20,6 +20,17 @@
         .nav-links { margin-top: 20px; }
         .nav-links a { margin-right: 15px; text-decoration: none; color: #007acc; }
         .nav-links a:hover { text-decoration: underline; }
+        .logout-form { display: inline; }
+        .logout-btn { 
+            background: none; 
+            border: none; 
+            color: #007acc; 
+            text-decoration: underline; 
+            cursor: pointer; 
+            padding: 0; 
+            font: inherit; 
+        }
+        .logout-btn:hover { color: #005a9e; }
     </style>
 </head>
 <body>
@@ -27,7 +38,10 @@
     <div class="user-info">
         {% if user.is_authenticated %}
             Welcome, {{ user.username }}! | 
-            <a href="{% url 'relationship_app:logout' %}">Logout</a>
+            <form action="{% url 'relationship_app:logout' %}" method="post" class="logout-form">
+                {% csrf_token %}
+                <button type="submit" class="logout-btn">Logout</button>
+            </form>
         {% else %}
             <a href="{% url 'relationship_app:login' %}">Login</a> | 
             <a href="{% url 'relationship_app:register' %}">Register</a>

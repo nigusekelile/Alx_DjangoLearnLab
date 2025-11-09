@@ -24,8 +24,12 @@ urlpatterns = [
 # LibraryProject/urls.py (or your project's urls.py)
 from django.contrib import admin
 from django.urls import path, include
+from django.contrib.auth import views as auth_views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('relationship/', include('relationship_app.urls')),
+    
+    # Optional: Include Django's built-in auth URLs for password reset, etc.
+    # path('accounts/', include('django.contrib.auth.urls')),
 ]

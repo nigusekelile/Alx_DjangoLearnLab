@@ -43,36 +43,11 @@ class LibraryListView(ListView):
 # relationship_app/views.py
 from django.shortcuts import render, redirect
 from django.views.generic import ListView, DetailView
-from django.contrib.auth import login, logout
 from django.contrib.auth.forms import UserCreationForm
-from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.urls import reverse_lazy
 from .models import Book, Library
-
-# Authentication Views
-def login_view(request):
-    """
-    User login view
-    """
-    if request.method == 'POST':
-        form = AuthenticationForm(request, data=request.POST)
-        if form.is_valid():
-            user = form.get_user()
-            login(request, user)
-            return redirect('relationship_app:list_books')
-    else:
-        form = AuthenticationForm()
-    
-    return render(request, 'relationship_app/login.html', {'form': form})
-
-def logout_view(request):
-    """
-    User logout view
-    """
-    logout(request)
-    return render(request, 'relationship_app/logout.html')
 
 def register_view(request):
     """
@@ -89,7 +64,17 @@ def register_view(request):
     
     return render(request, 'relationship_app/register.html', {'form': form})
 
-# Update existing views to require authentication
+def logout_view(request):
+    """
+    Custom logout view that handles GET requests
+    """
+    if request.method == 'POST':
+        logout(request)
+        return render(request, 'relationship_app/logout.html')
+    else:
+        # For GET requests, show a confirmation page with a form
+        return render(request, 'relationship_app/logout_confirm.html')
+
 @login_required
 def list_books(request):
     """
