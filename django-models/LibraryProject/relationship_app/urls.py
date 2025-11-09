@@ -17,23 +17,24 @@ urlpatterns = [
 # Authenticatio script 
 # relationship_app/urls.py
 from django.urls import path
-from django.contrib.auth.views import LoginView
+from django.contrib.auth.views import LoginView, LogoutView
 from . import views
 
 app_name = 'relationship_app'
 
 urlpatterns = [
-    # Authentication URLs
+    # Authentication URLs using Django's built-in class-based views
     path('login/', 
          LoginView.as_view(template_name='relationship_app/login.html'), 
          name='login'),
     
-    # Use custom logout view that handles GET requests
-    path('logout/', views.logout_view, name='logout'),
+    path('logout/', 
+         LogoutView.as_view(template_name='relationship_app/logout.html'), 
+         name='logout'),
     
     path('register/', views.register_view, name='register'),
     
-    # Book and Library URLs
+    # Book and Library URLs (protected)
     path('books/', views.list_books, name='list_books'),
     path('library/<int:pk>/', views.LibraryDetailView.as_view(), name='library_detail'),
     path('libraries/', views.LibraryListView.as_view(), name='library_list'),
