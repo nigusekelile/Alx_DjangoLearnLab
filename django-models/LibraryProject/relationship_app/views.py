@@ -1,12 +1,15 @@
 # relationship_app/views.py
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import ListView, DetailView
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import login
-from django.contrib.auth.decorators import login_required, user_passes_test
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.decorators import login_required, user_passes_test, permission_required
+from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.urls import reverse
-from .models import Book, Library, UserProfile
+from django.contrib import messages
+from django.http import HttpResponseForbidden
+from .models import Book, Library, UserProfile, Author
+from .forms import BookForm
 
 # Role-based access control functions
 def is_admin(user):
@@ -18,7 +21,7 @@ def is_librarian(user):
 def is_member(user):
     return user.is_authenticated and hasattr(user, 'profile') and user.profile.role == 'Member'
 
-# Role-based views with proper authentication
+# Role-based views
 @login_required(login_url='/relationship/login/')
 @user_passes_test(is_admin, login_url='/relationship/login/')
 def admin_view(request):
@@ -64,8 +67,9 @@ def member_view(request):
     }
     return render(request, 'relationship_app/member_view.html', context)
 
-# Update other views to specify login URL
+# Book Management Views with Custom Permissions
 @login_required(login_url='/relationship/login/')
+@permission_required('relationship_app.can_view_book', login_url='/relationship/login/')
 def list_books(request):
     """
     Function-based view that displays all books in the database
@@ -79,7 +83,77 @@ def list_books(request):
     }
     return render(request, 'relationship_app/list_books.html', context)
 
-class LibraryDetailView(LoginRequiredMixin, DetailView):
+@login_required(login_url='/relationship/login/')
+@permission_required('relationship_app.can_add_book', login_url='/relationship/login/')
+def add_book(request):
+    """
+    View to add a new book - requires can_add_book permission
+    """
+    if request.method == 'POST':
+        form = BookForm(request.POST)
+        if form.is_valid():
+            book = form.save(commit=False)
+            book.created_by = request.user
+            book.updated_by = request.user
+            book.save()
+            messages.success(request, f'Book "{book.title}" added successfully!')
+            return redirect('relationship_app:list_books')
+    else:
+        form = BookForm()
+    
+    context = {
+        'form': form,
+        'action': 'Add',
+    }
+    return render(request, 'relationship_app/book_form.html', context)
+
+@login_required(login_url='/relationship/login/')
+@permission_required('relationship_app.can_change_book', login_url='/relationship/login/')
+def edit_book(request, pk):
+    """
+    View to edit an existing book - requires can_change_book permission
+    """
+    book = get_object_or_404(Book, pk=pk)
+    
+    if request.method == 'POST':
+        form = BookForm(request.POST, instance=book)
+        if form.is_valid():
+            book = form.save(commit=False)
+            book.updated_by = request.user
+            book.save()
+            messages.success(request, f'Book "{book.title}" updated successfully!')
+            return redirect('relationship_app:list_books')
+    else:
+        form = BookForm(instance=book)
+    
+    context = {
+        'form': form,
+        'action': 'Edit',
+        'book': book,
+    }
+    return render(request, 'relationship_app/book_form.html', context)
+
+@login_required(login_url='/relationship/login/')
+@permission_required('relationship_app.can_delete_book', login_url='/relationship/login/')
+def delete_book(request, pk):
+    """
+    View to delete a book - requires can_delete_book permission
+    """
+    book = get_object_or_404(Book, pk=pk)
+    
+    if request.method == 'POST':
+        title = book.title
+        book.delete()
+        messages.success(request, f'Book "{title}" deleted successfully!')
+        return redirect('relationship_app:list_books')
+    
+    context = {
+        'book': book,
+    }
+    return render(request, 'relationship_app/book_confirm_delete.html', context)
+
+# Class-based views with permissions
+class LibraryDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
     """
     Class-based view that displays details for a specific library
     """
@@ -87,6 +161,7 @@ class LibraryDetailView(LoginRequiredMixin, DetailView):
     template_name = 'relationship_app/library_detail.html'
     context_object_name = 'library'
     login_url = '/relationship/login/'
+    permission_required = 'relationship_app.can_view_book'
     
     def get_queryset(self):
         return Library.objects.prefetch_related('books__author')
@@ -96,7 +171,7 @@ class LibraryDetailView(LoginRequiredMixin, DetailView):
         context['user_role'] = self.request.user.profile.role if hasattr(self.request.user, 'profile') else 'No Role'
         return context
 
-class LibraryListView(LoginRequiredMixin, ListView):
+class LibraryListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
     """
     Class-based view that displays all libraries
     """
@@ -104,6 +179,7 @@ class LibraryListView(LoginRequiredMixin, ListView):
     template_name = 'relationship_app/library_list.html'
     context_object_name = 'libraries'
     login_url = '/relationship/login/'
+    permission_required = 'relationship_app.can_view_book'
     
     def get_queryset(self):
         return Library.objects.prefetch_related('books')
@@ -113,7 +189,7 @@ class LibraryListView(LoginRequiredMixin, ListView):
         context['user_role'] = self.request.user.profile.role if hasattr(self.request.user, 'profile') else 'No Role'
         return context
 
-# Registration view remains the same
+# Registration view
 def register_view(request):
     """
     User registration view with role selection

@@ -35,6 +35,34 @@
             font-weight: bold;
             color: #555;
         }
+        .management-links { 
+            margin-top: 30px; 
+            padding: 20px; 
+            background: #f8f9fa; 
+            border-radius: 10px; 
+        }
+        .btn { 
+            background: #28a745; 
+            color: white; 
+            padding: 10px 20px; 
+            text-decoration: none; 
+            border-radius: 5px; 
+            margin-right: 10px;
+            display: inline-block;
+        }
+        .btn:hover {
+            background: #218838;
+            text-decoration: none;
+            color: white;
+        }
+        .permission-info {
+            margin-top: 15px; 
+            font-size: 14px; 
+            color: #666;
+        }
+        .permission-info span {
+            margin-right: 15px;
+        }
     </style>
 </head>
 <body>
@@ -63,9 +91,20 @@
     {% if books %}
         <ul>
             {% for book in books %}
-            <li><strong>{{ book.title }}</strong> by {{ book.author.name }}
+            <li>
+                <strong>{{ book.title }}</strong> by {{ book.author.name }}
                 {% if book.publication_year %}
                     (Published {{ book.publication_year }})
+                {% endif %}
+                {% if perms.relationship_app.can_change_book or perms.relationship_app.can_delete_book %}
+                    <div style="margin-top: 5px;">
+                        {% if perms.relationship_app.can_change_book %}
+                            <a href="{% url 'relationship_app:edit_book' book.pk %}" style="color: #007acc; text-decoration: none; margin-right: 10px;">✏️ Edit</a>
+                        {% endif %}
+                        {% if perms.relationship_app.can_delete_book %}
+                            <a href="{% url 'relationship_app:delete_book' book.pk %}" style="color: #dc3545; text-decoration: none;">🗑️ Delete</a>
+                        {% endif %}
+                    </div>
                 {% endif %}
             </li>
             {% endfor %}
@@ -73,6 +112,27 @@
     {% else %}
         <p>No books available.</p>
     {% endif %}
+    
+    <!-- Book Management Section -->
+    <div class="management-links">
+        <h3>Book Management</h3>
+        {% if perms.relationship_app.can_add_book %}
+            <a href="{% url 'relationship_app:add_book' %}" class="btn">
+                ➕ Add New Book
+            </a>
+        {% endif %}
+        
+        {% if perms.relationship_app.can_change_book or perms.relationship_app.can_delete_book %}
+            <div class="permission-info">
+                {% if perms.relationship_app.can_change_book %}
+                    <span>✏️ You can edit books</span>
+                {% endif %}
+                {% if perms.relationship_app.can_delete_book %}
+                    <span>🗑️ You can delete books</span>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
     
     <div class="nav-links">
         <a href="{% url 'relationship_app:library_list' %}">View All Libraries</a>
