@@ -1,0 +1,43 @@
+<!-- relationship_app/templates/relationship_app/library_detail.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Library Detail</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        h1 { color: #333; }
+        h2 { color: #666; }
+        ul { list-style-type: none; padding: 0; }
+        li { padding: 10px; margin: 5px 0; background: #f4f4f4; border-radius: 5px; }
+        .back-link { margin-top: 20px; display: inline-block; }
+    </style>
+</head>
+<body>
+    <h1>Library: {{ library.name }}</h1>
+    
+    {% if library.librarian %}
+        <p><strong>Librarian:</strong> {{ library.librarian.name }}</p>
+    {% endif %}
+    
+    <h2>Books in Library:</h2>
+    {% if library.books.all %}
+        <ul>
+            {% for book in library.books.all %}
+            <li><strong>{{ book.title }}</strong> by {{ book.author.name }}
+                {% if book.publication_year %}
+                    (Published {{ book.publication_year }})
+                {% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No books in this library.</p>
+    {% endif %}
+    
+    <div class="back-link">
+        <a href="{% url 'relationship_app:library_list' %}">← Back to All Libraries</a> | 
+        <a href="{% url 'relationship_app:list_books' %}">View All Books</a>
+    </div>
+</body>
+</html>

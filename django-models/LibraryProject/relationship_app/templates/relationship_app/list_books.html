@@ -1,0 +1,34 @@
+<!-- relationship_app/templates/relationship_app/list_books.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>List of Books</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        h1 { color: #333; }
+        ul { list-style-type: none; padding: 0; }
+        li { padding: 10px; margin: 5px 0; background: #f4f4f4; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Books Available:</h1>
+    {% if books %}
+        <ul>
+            {% for book in books %}
+            <li><strong>{{ book.title }}</strong> by {{ book.author.name }}
+                {% if book.publication_year %}
+                    (Published {{ book.publication_year }})
+                {% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No books available.</p>
+    {% endif %}
+    
+    <div style="margin-top: 20px;">
+        <a href="{% url 'relationship_app:library_list' %}">View All Libraries</a>
+    </div>
+</body>
+</html>

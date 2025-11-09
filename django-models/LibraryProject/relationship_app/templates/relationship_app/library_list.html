@@ -1,0 +1,36 @@
+<!-- relationship_app/templates/relationship_app/library_list.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>All Libraries</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        h1 { color: #333; }
+        ul { list-style-type: none; padding: 0; }
+        li { padding: 15px; margin: 10px 0; background: #f0f8ff; border-radius: 5px; border-left: 4px solid #007acc; }
+        a { text-decoration: none; color: #007acc; font-weight: bold; }
+        a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <h1>All Libraries</h1>
+    
+    {% if libraries %}
+        <ul>
+            {% for library in libraries %}
+            <li>
+                <a href="{% url 'relationship_app:library_detail' library.pk %}">{{ library.name }}</a>
+                - {{ library.books.count }} book{{ library.books.count|pluralize }}
+            </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No libraries available.</p>
+    {% endif %}
+    
+    <div style="margin-top: 20px;">
+        <a href="{% url 'relationship_app:list_books' %}">View All Books</a>
+    </div>
+</body>
+</html>
