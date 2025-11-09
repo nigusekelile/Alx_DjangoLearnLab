@@ -30,13 +30,24 @@
             font: inherit; 
         }
         .logout-btn:hover { color: #005a9e; }
+        .role-badge {
+            font-weight: bold;
+            color: #555;
+        }
     </style>
 </head>
 <body>
-    <!-- User authentication info -->
+    <!-- User authentication info with role-based navigation -->
     <div class="user-info">
         {% if user.is_authenticated %}
-            Welcome, {{ user.username }}! | 
+            Welcome, {{ user.username }} <span class="role-badge">({{ user_role }})</span> | 
+            {% if user_role == 'Admin' %}
+                <a href="{% url 'relationship_app:admin_view' %}">Admin Dashboard</a> |
+            {% elif user_role == 'Librarian' %}
+                <a href="{% url 'relationship_app:librarian_view' %}">Librarian Dashboard</a> |
+            {% elif user_role == 'Member' %}
+                <a href="{% url 'relationship_app:member_view' %}">Member Dashboard</a> |
+            {% endif %}
             <form action="{% url 'relationship_app:logout' %}" method="post" class="logout-form">
                 {% csrf_token %}
                 <button type="submit" class="logout-btn">Logout</button>
