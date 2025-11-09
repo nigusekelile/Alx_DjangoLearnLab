@@ -1,5 +1,6 @@
 # relationship_app/views.py
 from .models import Library
+from django.views.generic.detail import DetailView
 from django.shortcuts import render
 from django.views.generic import ListView, DetailView
 from .models import Book, Library  # Added Library import
