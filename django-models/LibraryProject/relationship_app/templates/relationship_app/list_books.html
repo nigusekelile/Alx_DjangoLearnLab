@@ -8,7 +8,13 @@
         body { font-family: Arial, sans-serif; margin: 40px; }
         h1 { color: #333; }
         ul { list-style-type: none; padding: 0; }
-        li { padding: 10px; margin: 5px 0; background: #f4f4f4; border-radius: 5px; }
+        li { 
+            padding: 15px; 
+            margin: 10px 0; 
+            background: #f4f4f4; 
+            border-radius: 5px; 
+            border-left: 4px solid #007acc;
+        }
         .user-info { 
             position: absolute; 
             top: 20px; 
@@ -63,6 +69,32 @@
         .permission-info span {
             margin-right: 15px;
         }
+        .book-actions {
+            margin-top: 10px;
+        }
+        .book-actions a {
+            margin-right: 15px;
+            text-decoration: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-size: 14px;
+        }
+        .edit-btn {
+            background: #ffc107;
+            color: #212529;
+        }
+        .delete-btn {
+            background: #dc3545;
+            color: white;
+        }
+        .book-id {
+            font-size: 12px;
+            color: #6c757d;
+            background: #e9ecef;
+            padding: 2px 6px;
+            border-radius: 3px;
+            margin-left: 10px;
+        }
     </style>
 </head>
 <body>
@@ -92,17 +124,21 @@
         <ul>
             {% for book in books %}
             <li>
-                <strong>{{ book.title }}</strong> by {{ book.author.name }}
+                <strong>{{ book.title }}</strong> 
+                <span class="book-id">ID: {{ book.id }}</span>
+                <br>
+                by {{ book.author.name }}
                 {% if book.publication_year %}
                     (Published {{ book.publication_year }})
                 {% endif %}
+                
                 {% if perms.relationship_app.can_change_book or perms.relationship_app.can_delete_book %}
-                    <div style="margin-top: 5px;">
+                    <div class="book-actions">
                         {% if perms.relationship_app.can_change_book %}
-                            <a href="{% url 'relationship_app:edit_book' book.pk %}" style="color: #007acc; text-decoration: none; margin-right: 10px;">✏️ Edit</a>
+                            <a href="{% url 'relationship_app:edit_book' book.pk %}" class="edit-btn">✏️ Edit</a>
                         {% endif %}
                         {% if perms.relationship_app.can_delete_book %}
-                            <a href="{% url 'relationship_app:delete_book' book.pk %}" style="color: #dc3545; text-decoration: none;">🗑️ Delete</a>
+                            <a href="{% url 'relationship_app:delete_book' book.pk %}" class="delete-btn">🗑️ Delete</a>
                         {% endif %}
                     </div>
                 {% endif %}
