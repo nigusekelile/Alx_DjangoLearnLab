@@ -27,6 +27,9 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+# LibraryProject/settings.py (add these if not present)
+LOGIN_REDIRECT_URL = '/relationship/books/'
+LOGOUT_REDIRECT_URL = '/relationship/login/'
 
 # Application definition
 

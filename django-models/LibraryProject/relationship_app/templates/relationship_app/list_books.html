@@ -9,9 +9,31 @@
         h1 { color: #333; }
         ul { list-style-type: none; padding: 0; }
         li { padding: 10px; margin: 5px 0; background: #f4f4f4; border-radius: 5px; }
+        .user-info { 
+            position: absolute; 
+            top: 20px; 
+            right: 20px; 
+            background: #e9ecef; 
+            padding: 10px; 
+            border-radius: 5px; 
+        }
+        .nav-links { margin-top: 20px; }
+        .nav-links a { margin-right: 15px; text-decoration: none; color: #007acc; }
+        .nav-links a:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
+    <!-- User authentication info -->
+    <div class="user-info">
+        {% if user.is_authenticated %}
+            Welcome, {{ user.username }}! | 
+            <a href="{% url 'relationship_app:logout' %}">Logout</a>
+        {% else %}
+            <a href="{% url 'relationship_app:login' %}">Login</a> | 
+            <a href="{% url 'relationship_app:register' %}">Register</a>
+        {% endif %}
+    </div>
+
     <h1>Books Available:</h1>
     {% if books %}
         <ul>
@@ -27,7 +49,7 @@
         <p>No books available.</p>
     {% endif %}
     
-    <div style="margin-top: 20px;">
+    <div class="nav-links">
         <a href="{% url 'relationship_app:library_list' %}">View All Libraries</a>
     </div>
 </body>
