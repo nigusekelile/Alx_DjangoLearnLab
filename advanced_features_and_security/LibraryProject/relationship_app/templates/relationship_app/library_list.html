@@ -1,0 +1,80 @@
+<!-- relationship_app/templates/relationship_app/library_list.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>All Libraries</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        h1 { color: #333; }
+        ul { list-style-type: none; padding: 0; }
+        li { padding: 15px; margin: 10px 0; background: #f0f8ff; border-radius: 5px; border-left: 4px solid #007acc; }
+        a { text-decoration: none; color: #007acc; font-weight: bold; }
+        a:hover { text-decoration: underline; }
+        .user-info { 
+            position: absolute; 
+            top: 20px; 
+            right: 20px; 
+            background: #e9ecef; 
+            padding: 10px; 
+            border-radius: 5px; 
+        }
+        .logout-form { display: inline; }
+        .logout-btn { 
+            background: none; 
+            border: none; 
+            color: #007acc; 
+            text-decoration: underline; 
+            cursor: pointer; 
+            padding: 0; 
+            font: inherit; 
+        }
+        .logout-btn:hover { color: #005a9e; }
+        .role-badge {
+            font-weight: bold;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <!-- User authentication info with role-based navigation -->
+    <div class="user-info">
+        {% if user.is_authenticated %}
+            Welcome, {{ user.username }} <span class="role-badge">({{ user_role }})</span> | 
+            {% if user_role == 'Admin' %}
+                <a href="{% url 'relationship_app:admin_view' %}">Admin Dashboard</a> |
+            {% elif user_role == 'Librarian' %}
+                <a href="{% url 'relationship_app:librarian_view' %}">Librarian Dashboard</a> |
+            {% elif user_role == 'Member' %}
+                <a href="{% url 'relationship_app:member_view' %}">Member Dashboard</a> |
+            {% endif %}
+            <form action="{% url 'relationship_app:logout' %}" method="post" class="logout-form">
+                {% csrf_token %}
+                <button type="submit" class="logout-btn">Logout</button>
+            </form>
+        {% else %}
+            <a href="{% url 'relationship_app:login' %}">Login</a> | 
+            <a href="{% url 'relationship_app:register' %}">Register</a>
+        {% endif %}
+    </div>
+
+    <h1>All Libraries</h1>
+    
+    {% if libraries %}
+        <ul>
+            {% for library in libraries %}
+            <li>
+                <a href="{% url 'relationship_app:library_detail' library.pk %}">{{ library.name }}</a>
+                - {{ library.books.count }} book{{ library.books.count|pluralize }}
+            </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No libraries available.</p>
+    {% endif %}
+    
+    <div style="margin-top: 20px;">
+        <a href="{% url 'relationship_app:list_books' %}">View All Books</a>
+    </div>
+</body>
+</html>

@@ -1,0 +1,13 @@
+<!-- relationship_app/templates/relationship_app/navbar.html -->
+<div class="user-info">
+    {% if user.is_authenticated %}
+        Welcome, {{ user.username }}! | 
+        <form action="{% url 'relationship_app:logout' %}" method="post" class="logout-form">
+            {% csrf_token %}
+            <button type="submit" class="logout-btn">Logout</button>
+        </form>
+    {% else %}
+        <a href="{% url 'relationship_app:login' %}">Login</a> | 
+        <a href="{% url 'relationship_app:register' %}">Register</a>
+    {% endif %}
+</div>

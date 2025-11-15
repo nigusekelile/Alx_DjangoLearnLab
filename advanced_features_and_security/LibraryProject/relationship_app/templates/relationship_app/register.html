@@ -1,0 +1,49 @@
+<!-- relationship_app/templates/relationship_app/register.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Register</title>
+    <!-- ... same styles as before ... -->
+</head>
+<body>
+    <div class="auth-container">
+        <h1>Register</h1>
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label for="id_username">Username:</label>
+                {{ form.username }}
+                {% if form.username.errors %}
+                    <div class="error">{{ form.username.errors }}</div>
+                {% endif %}
+                <div class="helptext">Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only.</div>
+            </div>
+            
+            <div class="form-group">
+                <label for="id_password1">Password:</label>
+                {{ form.password1 }}
+                {% if form.password1.errors %}
+                    <div class="error">{{ form.password1.errors }}</div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label for="id_password2">Password confirmation:</label>
+                {{ form.password2 }}
+                {% if form.password2.errors %}
+                    <div class="error">{{ form.password2.errors }}</div>
+                {% endif %}
+                <div class="helptext">Enter the same password as before, for verification.</div>
+            </div>
+            
+            <button type="submit">Register</button>
+        </form>
+        
+        <div class="links">
+            <p>Already have an account? <a href="{% url 'relationship_app:login' %}">Login here</a></p>
+        </div>
+    </div>
+</body>
+</html>
