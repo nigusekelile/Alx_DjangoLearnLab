@@ -1,7 +1,8 @@
-# relationship_app/forms.py
+# LibraryProject/relationship_app/forms.py
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
-from .models import Book, Author, CustomUser
+from bookshelf.models import CustomUser  # Import from bookshelf
+from .models import Book, Author
 
 class CustomUserCreationForm(UserCreationForm):
     """Custom user creation form that includes date of birth"""
@@ -12,12 +13,11 @@ class CustomUserCreationForm(UserCreationForm):
     )
     
     class Meta:
-        model = CustomUser
+        model = CustomUser  # Use CustomUser from bookshelf
         fields = ('email', 'username', 'date_of_birth', 'password1', 'password2')
         
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Update widget attributes for better styling
         for field_name in self.fields:
             self.fields[field_name].widget.attrs.update({'class': 'form-control'})
 

@@ -1,7 +1,4 @@
-"""
-Django settings for LibraryProject project.
-"""
-
+# LibraryProject/settings.py
 import os
 from pathlib import Path
 
@@ -18,6 +15,7 @@ ALLOWED_HOSTS = []
 
 # Application definition
 INSTALLED_APPS = [
+    'bookshelf',  # MUST COME BEFORE django.contrib.auth
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -26,6 +24,9 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'relationship_app',
 ]
+
+# Custom User Model - MUST point to bookshelf.CustomUser
+AUTH_USER_MODEL = 'bookshelf.CustomUser'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -82,9 +83,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-# Custom User Model
-AUTH_USER_MODEL = 'relationship_app.CustomUser'
-
 # Internationalization
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
@@ -93,13 +91,6 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
-
-# Only include STATICFILES_DIRS if the directory exists
-if (BASE_DIR / 'static').exists():
-    STATICFILES_DIRS = [BASE_DIR / 'static']
-else:
-    STATICFILES_DIRS = []
-
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Media files (profile photos)
