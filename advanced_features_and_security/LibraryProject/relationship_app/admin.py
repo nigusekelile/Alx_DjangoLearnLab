@@ -2,9 +2,7 @@
 from django.contrib import admin
 from .models import UserProfile, Author, Book, Library, Librarian
 
-# REMOVE the CustomUser registration from here
-# CustomUser should only be registered in bookshelf/admin.py
-
+# Only register relationship_app models, no CustomUser
 @admin.register(UserProfile)
 class UserProfileAdmin(admin.ModelAdmin):
     list_display = ('user', 'role')

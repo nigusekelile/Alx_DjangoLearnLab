@@ -4,7 +4,6 @@ from django.contrib.auth.admin import UserAdmin
 from django.utils.translation import gettext_lazy as _
 from .models import CustomUser
 
-@admin.register(CustomUser)
 class CustomUserAdmin(UserAdmin):
     """Define admin model for custom User model."""
     
@@ -45,3 +44,6 @@ class CustomUserAdmin(UserAdmin):
     search_fields = ('email', 'username', 'first_name', 'last_name')
     ordering = ('email',)
     filter_horizontal = ('groups', 'user_permissions',)
+
+# Register the CustomUser model with the CustomUserAdmin using admin.site.register
+admin.site.register(CustomUser, CustomUserAdmin)
