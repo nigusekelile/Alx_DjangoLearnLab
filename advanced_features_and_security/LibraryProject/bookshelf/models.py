@@ -82,6 +82,13 @@ class CustomUser(AbstractUser):
         verbose_name = _('user')
         verbose_name_plural = _('users')
         db_table = 'custom_user'
+        # Add custom permissions
+        permissions = [
+            ("can_view", "Can view user profiles"),
+            ("can_create", "Can create new users"),
+            ("can_edit", "Can edit user profiles"),
+            ("can_delete", "Can delete users"),
+        ]
     
     def __str__(self):
         return self.email
