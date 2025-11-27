@@ -1,7 +1,6 @@
 """
 Custom views for the API application.
-Implements generic views for CRUD operations on Book model with custom behavior
-and permission controls.
+Implements generic views for CRUD operations on Book model with RESTful endpoints.
 """
 
 from rest_framework import generics, permissions, status
@@ -11,69 +10,41 @@ from rest_framework.filters import SearchFilter, OrderingFilter
 from .models import Book, Author
 from .serializers import BookSerializer, AuthorSerializer
 
-class BookListView(generics.ListAPIView):
+class BookListCreateView(generics.ListCreateAPIView):
     """
-    List view for retrieving all books with filtering and search capabilities.
+    Combined list and create view for books.
+    
+    Handles:
+    - GET: Returns list of all books (public access)
+    - POST: Creates a new book (authenticated users only)
     
     Features:
-    - Lists all book instances
-    - Supports filtering by publication_year and author
-    - Provides search functionality on title field
-    - Allows ordering by multiple fields
-    - Open to all users (including unauthenticated)
+    - Filtering, searching, and ordering for GET requests
+    - Custom validation and response for POST requests
     """
     queryset = Book.objects.all()
     serializer_class = BookSerializer
-    permission_classes = [permissions.AllowAny]  # Read-only access for all
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ['publication_year', 'author']
     search_fields = ['title']
     ordering_fields = ['title', 'publication_year', 'created_at']
-    ordering = ['title']  # Default ordering
+    ordering = ['title']
 
-class BookDetailView(generics.RetrieveAPIView):
-    """
-    Detail view for retrieving a single book by ID.
-    
-    Features:
-    - Retrieves specific book instance by primary key
-    - Includes nested author information
-    - Open to all users (including unauthenticated)
-    """
-    queryset = Book.objects.all()
-    serializer_class = BookSerializer
-    permission_classes = [permissions.AllowAny]
-    lookup_field = 'pk'
-
-class BookCreateView(generics.CreateAPIView):
-    """
-    Create view for adding new books with custom validation.
-    
-    Features:
-    - Handles book creation with data validation
-    - Applies custom publication_year validation
-    - Restricted to authenticated users only
-    - Custom success response with created book data
-    """
-    queryset = Book.objects.all()
-    serializer_class = BookSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    def perform_create(self, serializer):
+    def get_permissions(self):
         """
-        Custom method called when creating a new book instance.
-        
-        Args:
-            serializer: Validated book serializer instance
+        Instantiates and returns the list of permissions that this view requires.
+        - GET: AllowAny
+        - POST: IsAuthenticated
         """
-        serializer.save()
+        if self.request.method == 'GET':
+            permission_classes = [permissions.AllowAny]
+        else:
+            permission_classes = [permissions.IsAuthenticated]
+        return [permission() for permission in permission_classes]
 
     def create(self, request, *args, **kwargs):
         """
         Override create method to customize response format.
-        
-        Returns:
-            Response: Custom response with success message and book data
         """
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -89,27 +60,39 @@ class BookCreateView(generics.CreateAPIView):
             headers=headers
         )
 
-class BookUpdateView(generics.UpdateAPIView):
+class BookRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     """
-    Update view for modifying existing books with partial updates support.
+    Combined retrieve, update, and destroy view for individual books.
+    
+    Handles:
+    - GET: Retrieve single book (public access)
+    - PUT: Full update of book (authenticated users only)
+    - PATCH: Partial update of book (authenticated users only)
+    - DELETE: Remove book (authenticated users only)
     
     Features:
-    - Handles full (PUT) and partial (PATCH) updates
-    - Applies validation on updated data
-    - Restricted to authenticated users only
-    - Custom response format
+    - Custom responses for update and delete operations
+    - Proper permission handling per HTTP method
     """
     queryset = Book.objects.all()
     serializer_class = BookSerializer
-    permission_classes = [permissions.IsAuthenticated]
     lookup_field = 'pk'
+
+    def get_permissions(self):
+        """
+        Instantiates and returns the list of permissions that this view requires.
+        - GET: AllowAny
+        - PUT, PATCH, DELETE: IsAuthenticated
+        """
+        if self.request.method == 'GET':
+            permission_classes = [permissions.AllowAny]
+        else:
+            permission_classes = [permissions.IsAuthenticated]
+        return [permission() for permission in permission_classes]
 
     def update(self, request, *args, **kwargs):
         """
         Override update method to customize response format.
-        
-        Returns:
-            Response: Custom response with success message and updated book data
         """
         partial = kwargs.pop('partial', False)
         instance = self.get_object()
@@ -127,35 +110,9 @@ class BookUpdateView(generics.UpdateAPIView):
             }
         )
 
-    def perform_update(self, serializer):
-        """Save the updated book instance."""
-        serializer.save()
-
-    def partial_update(self, request, *args, **kwargs):
-        """Handle PATCH requests for partial updates."""
-        kwargs['partial'] = True
-        return self.update(request, *args, **kwargs)
-
-class BookDeleteView(generics.DestroyAPIView):
-    """
-    Delete view for removing books with custom response.
-    
-    Features:
-    - Handles book deletion
-    - Restricted to authenticated users only
-    - Custom success response without returning deleted data
-    """
-    queryset = Book.objects.all()
-    serializer_class = BookSerializer
-    permission_classes = [permissions.IsAuthenticated]
-    lookup_field = 'pk'
-
     def destroy(self, request, *args, **kwargs):
         """
         Override destroy method to customize response format.
-        
-        Returns:
-            Response: Custom success message without returning deleted data
         """
         instance = self.get_object()
         book_title = instance.title
@@ -168,11 +125,7 @@ class BookDeleteView(generics.DestroyAPIView):
             status=status.HTTP_200_OK
         )
 
-    def perform_destroy(self, instance):
-        """Delete the book instance."""
-        instance.delete()
-
-# Author views for completeness
+# Keep the existing Author views
 class AuthorListView(generics.ListAPIView):
     """List view for authors with books count"""
     queryset = Author.objects.all()
