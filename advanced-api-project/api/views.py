@@ -2,7 +2,7 @@
 Custom views for the API application.
 Implements all required generic views for complete Book CRUD operations.
 """
-
+from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
