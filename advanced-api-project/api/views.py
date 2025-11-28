@@ -2,12 +2,11 @@
 Enhanced views with comprehensive filtering, searching, and ordering capabilities.
 Implements advanced query features for Book and Author models.
 """
-from django_filters import rest_framework
-from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated
+
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework.filters import SearchFilter, OrderingFilter  # Fixed import
+from rest_framework import filters  # Correct import for OrderingFilter
 from django.db import models
 from .models import Book, Author
 from .serializers import BookSerializer, AuthorSerializer
@@ -45,8 +44,8 @@ class BookListView(generics.ListAPIView):
     serializer_class = BookSerializer
     permission_classes = [permissions.AllowAny]
     
-    # Filter backends configuration - NOW INCLUDES OrderingFilter
-    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    # Filter backends configuration - USING filters.OrderingFilter
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     
     # Django Filter configuration
     filterset_class = BookFilter
@@ -171,8 +170,8 @@ class AuthorListView(generics.ListAPIView):
     serializer_class = AuthorSerializer
     permission_classes = [permissions.AllowAny]
     
-    # Filter backends - NOW INCLUDES OrderingFilter
-    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    # Filter backends - USING filters.OrderingFilter
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_class = AuthorFilter
     search_fields = ['name']
     ordering_fields = ['name', 'created_at', 'book_count']
