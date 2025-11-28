@@ -124,3 +124,24 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.BasicAuthentication',
     ],
 }
+
+# Add to your existing settings
+
+# Testing configuration
+TEST_RUNNER = 'django.test.runner.DiscoverRunner'
+
+# Use SQLite in-memory database for faster tests during development
+import sys
+if 'test' in sys.argv:
+    DATABASES['default'] = {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': ':memory:',
+    }
+    
+    # Speed up tests by using a faster password hasher
+    PASSWORD_HASHERS = [
+        'django.contrib.auth.hashers.MD5PasswordHasher',
+    ]
+    
+    # Disable logging during tests
+    LOGGING = {}
