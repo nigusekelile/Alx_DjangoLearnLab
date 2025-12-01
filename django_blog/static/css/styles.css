@@ -1,0 +1,245 @@
+/* Basic reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f4f7f6;
+    color: #333;
+    line-height: 1.6;
+}
+
+header {
+    background-color: #2c3e50;
+    padding: 1rem 0;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+header nav ul {
+    list-style-type: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    padding: 0 20px;
+}
+
+header nav ul li {
+    margin: 0 20px;
+}
+
+header nav ul li a {
+    color: #ecf0f1;
+    text-decoration: none;
+    font-size: 1.1rem;
+    font-weight: 500;
+    padding: 5px 10px;
+    border-radius: 3px;
+    transition: background-color 0.3s ease;
+}
+
+header nav ul li a:hover {
+    background-color: #34495e;
+    color: #3498db;
+}
+
+header nav ul li span {
+    color: #ecf0f1;
+    font-weight: 500;
+}
+
+.content {
+    max-width: 1200px;
+    margin: 30px auto;
+    padding: 0 20px;
+    min-height: 70vh;
+}
+
+.alert {
+    padding: 15px;
+    margin-bottom: 20px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+}
+
+.alert-success {
+    color: #155724;
+    background-color: #d4edda;
+    border-color: #c3e6cb;
+}
+
+.alert-error, .alert-danger {
+    color: #721c24;
+    background-color: #f8d7da;
+    border-color: #f5c6cb;
+}
+
+.alert-info {
+    color: #0c5460;
+    background-color: #d1ecf1;
+    border-color: #bee5eb;
+}
+
+.post-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 30px;
+    margin-top: 30px;
+}
+
+.post-card {
+    background: white;
+    border-radius: 8px;
+    padding: 25px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.post-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+}
+
+.post-card h2 {
+    color: #2c3e50;
+    margin-bottom: 15px;
+    font-size: 1.5rem;
+}
+
+.post-card p {
+    color: #7f8c8d;
+    margin-bottom: 20px;
+    line-height: 1.6;
+}
+
+.post-meta {
+    color: #95a5a6;
+    font-size: 0.9rem;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+}
+
+.auth-form {
+    max-width: 500px;
+    margin: 50px auto;
+    background: white;
+    padding: 40px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.form-group {
+    margin-bottom: 25px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #2c3e50;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+    transition: border-color 0.3s ease;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+}
+
+.btn {
+    display: inline-block;
+    padding: 12px 30px;
+    background-color: #3498db;
+    color: white;
+    text-decoration: none;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 500;
+    transition: background-color 0.3s ease;
+}
+
+.btn:hover {
+    background-color: #2980b9;
+}
+
+.btn-danger {
+    background-color: #e74c3c;
+}
+
+.btn-danger:hover {
+    background-color: #c0392b;
+}
+
+.btn-success {
+    background-color: #2ecc71;
+}
+
+.btn-success:hover {
+    background-color: #27ae60;
+}
+
+.post-detail {
+    background: white;
+    padding: 40px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.post-detail h1 {
+    color: #2c3e50;
+    margin-bottom: 20px;
+    font-size: 2.5rem;
+}
+
+.post-content {
+    margin-top: 30px;
+    line-height: 1.8;
+    font-size: 1.1rem;
+}
+
+footer {
+    text-align: center;
+    margin-top: 50px;
+    padding: 20px;
+    background-color: #2c3e50;
+    color: white;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    header nav ul {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    header nav ul li {
+        margin: 10px 0;
+    }
+    
+    .post-list {
+        grid-template-columns: 1fr;
+    }
+    
+    .auth-form {
+        margin: 20px;
+        padding: 20px;
+    }
+    
+    .post-detail {
+        padding: 20px;
+    }
+}
