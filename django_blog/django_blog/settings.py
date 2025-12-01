@@ -21,7 +21,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-your-secret-key-here-change-in-production'
+SECRET_KEY = 'django-insecure-2y#f$8w_5z!x@6p9r3t&u1v4m7n0b2c1x9z8y7a6b5c4d3e2f1g'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -81,8 +81,37 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
+        # SQLite doesn't use USER, PASSWORD, HOST, or PORT settings
+        # For PostgreSQL or MySQL, you would add those settings
     }
 }
+
+# Example PostgreSQL configuration (commented out):
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': 'django_blog',
+#         'USER': 'postgres_user',      # Database username
+#         'PASSWORD': 'your_password',  # Database password
+#         'HOST': 'localhost',          # Database host
+#         'PORT': '5432',               # Database port (default for PostgreSQL)
+#     }
+# }
+
+# Example MySQL configuration (commented out):
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': 'django_blog',
+#         'USER': 'mysql_user',         # Database username
+#         'PASSWORD': 'your_password',  # Database password
+#         'HOST': 'localhost',          # Database host
+#         'PORT': '3306',               # Database port (default for MySQL)
+#         'OPTIONS': {
+#             'charset': 'utf8mb4',
+#         }
+#     }
+# }
 
 
 # Password validation
