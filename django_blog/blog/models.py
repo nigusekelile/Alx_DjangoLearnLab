@@ -54,3 +54,51 @@ def create_user_profile(sender, instance, created, **kwargs):
 @receiver(post_save, sender=User)
 def save_user_profile(sender, instance, **kwargs):
     instance.profile.save()
+
+    from django.db import models
+from django.contrib.auth.models import User
+from django.utils import timezone
+from django.urls import reverse
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+import os
+
+class Post(models.Model):
+    title = models.CharField(max_length=200)
+    content = models.TextField()
+    published_date = models.DateTimeField(auto_now_add=True)
+    author = models.ForeignKey(User, on_delete=models.CASCADE)
+    
+    def __str__(self):
+        return self.title
+    
+    def get_absolute_url(self):
+        return reverse('post-detail', kwargs={'pk': self.pk})
+    
+    def get_update_url(self):
+        return reverse('post-update', kwargs={'pk': self.pk})
+    
+    def get_delete_url(self):
+        return reverse('post-delete', kwargs={'pk': self.pk})
+    
+    def get_short_content(self, length=150):
+        """Return truncated content for preview"""
+        if len(self.content) > length:
+            return self.content[:length] + '...'
+        return self.content
+    
+    def get_read_time(self):
+        """Calculate approximate read time (assuming 200 words per minute)"""
+        word_count = len(self.content.split())
+        minutes = word_count / 200
+        if minutes < 1:
+            return "Less than a minute"
+        elif minutes < 2:
+            return "1 minute"
+        else:
+            return f"{int(minutes)} minutes"
+    
+    class Meta:
+        ordering = ['-published_date']
+
+# Profile model remains the same...

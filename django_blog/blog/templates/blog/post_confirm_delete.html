@@ -3,16 +3,175 @@
 {% block title %}Delete Post - Django Blog{% endblock %}
 
 {% block content %}
-<div class="auth-form">
-    <h1>Delete Post</h1>
-    
-    <p>Are you sure you want to delete "{{ post.title }}"?</p>
-    <p>This action cannot be undone.</p>
-    
-    <form method="post">
-        {% csrf_token %}
-        <button type="submit" class="btn btn-danger">Yes, Delete</button>
-        <a href="{% url 'post-detail' post.pk %}" class="btn">Cancel</a>
-    </form>
+<div class="delete-confirmation-container">
+    <div class="delete-confirmation-content">
+        <div class="warning-icon">
+            <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        
+        <h1>Delete Post</h1>
+        
+        <div class="confirmation-message">
+            <p>Are you sure you want to delete the following post?</p>
+            <div class="post-to-delete">
+                <h3>"{{ object.title }}"</h3>
+                <div class="post-preview">
+                    {{ object.content|truncatewords:30|safe }}
+                </div>
+                <div class="post-meta">
+                    <span>By {{ object.author.username }}</span>
+                    <span>•</span>
+                    <span>{{ object.published_date|date:"F d, Y" }}</span>
+                </div>
+            </div>
+            
+            <div class="warning-box">
+                <i class="fas fa-exclamation-circle"></i>
+                <p><strong>This action cannot be undone.</strong> All comments and data associated with this post will be permanently deleted.</p>
+            </div>
+        </div>
+        
+        <form method="post" class="confirmation-form">
+            {% csrf_token %}
+            <div class="form-actions">
+                <button type="submit" class="btn btn-danger btn-lg">
+                    <i class="fas fa-trash"></i> Yes, Delete Permanently
+                </button>
+                <a href="{% url 'post-detail' object.pk %}" class="btn btn-lg">
+                    <i class="fas fa-times"></i> Cancel, Keep Post
+                </a>
+            </div>
+        </form>
+    </div>
 </div>
+
+<style>
+.delete-confirmation-container {
+    max-width: 600px;
+    margin: 50px auto;
+    background: white;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.delete-confirmation-content {
+    padding: 40px;
+    text-align: center;
+}
+
+.warning-icon {
+    font-size: 4rem;
+    color: #e74c3c;
+    margin-bottom: 20px;
+}
+
+.warning-icon i {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+.delete-confirmation-content h1 {
+    color: #2c3e50;
+    margin-bottom: 30px;
+    font-size: 2rem;
+}
+
+.confirmation-message {
+    text-align: left;
+    margin-bottom: 40px;
+}
+
+.confirmation-message p {
+    color: #555;
+    font-size: 1.1rem;
+    margin-bottom: 20px;
+}
+
+.post-to-delete {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 20px;
+    margin: 20px 0;
+}
+
+.post-to-delete h3 {
+    color: #2c3e50;
+    margin: 0 0 15px 0;
+    font-size: 1.3rem;
+}
+
+.post-preview {
+    color: #666;
+    line-height: 1.6;
+    margin-bottom: 15px;
+    font-size: 0.95rem;
+}
+
+.post-meta {
+    color: #95a5a6;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.warning-box {
+    background: #ffeaa7;
+    border: 1px solid #fdcb6e;
+    border-radius: 8px;
+    padding: 15px;
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.warning-box i {
+    color: #e17055;
+    font-size: 1.2rem;
+    margin-top: 2px;
+}
+
+.warning-box p {
+    margin: 0;
+    color: #636e72;
+    text-align: left;
+}
+
+.confirmation-form {
+    margin-top: 40px;
+}
+
+.form-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+}
+
+@media (max-width: 768px) {
+    .delete-confirmation-container {
+        margin: 20px;
+    }
+    
+    .delete-confirmation-content {
+        padding: 30px 20px;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+    }
+    
+    .btn-lg {
+        width: 100%;
+        text-align: center;
+    }
+}
+</style>
 {% endblock %}

@@ -1,28 +1,176 @@
 {% extends 'blog/base.html' %}
 
-{% block title %}{% if post %}Edit Post{% else %}Create Post{% endif %} - Django Blog{% endblock %}
+{% block title %}{{ title|default:"Create Post" }} - Django Blog{% endblock %}
 
 {% block content %}
-<div class="auth-form">
-    <h1>{% if post %}Edit Post{% else %}Create New Post{% endif %}</h1>
+<div class="post-form-container">
+    <div class="post-form-header">
+        <h1>{{ title|default:"Create New Post" }}</h1>
+        <p>Share your thoughts and ideas with the world</p>
+    </div>
     
-    <form method="post">
-        {% csrf_token %}
-        
-        <div class="form-group">
-            <label for="title">Title:</label>
-            <input type="text" id="title" name="title" value="{% if post %}{{ post.title }}{% endif %}" required>
-        </div>
-        
-        <div class="form-group">
-            <label for="content">Content:</label>
-            <textarea id="content" name="content" rows="10" required style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 4px; font-family: inherit; font-size: 1rem;">{% if post %}{{ post.content }}{% endif %}</textarea>
-        </div>
-        
-        <button type="submit" class="btn btn-success">
-            {% if post %}Update Post{% else %}Create Post{% endif %}
-        </button>
-        <a href="{% if post %}{% url 'post-detail' post.pk %}{% else %}{% url 'post-list' %}{% endif %}" class="btn">Cancel</a>
-    </form>
+    <div class="post-form-wrapper">
+        <form method="post" novalidate>
+            {% csrf_token %}
+            
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+                {% for error in form.non_field_errors %}
+                    {{ error }}
+                {% endfor %}
+            </div>
+            {% endif %}
+            
+            <div class="form-group">
+                <label for="{{ form.title.id_for_label }}">Title:</label>
+                {{ form.title }}
+                {% if form.title.errors %}
+                <div class="error-message">
+                    {% for error in form.title.errors %}
+                        <small class="text-danger">{{ error }}</small>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                <small class="form-text text-muted">Choose a descriptive title for your post (minimum 5 characters).</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="{{ form.content.id_for_label }}">Content:</label>
+                {{ form.content }}
+                {% if form.content.errors %}
+                <div class="error-message">
+                    {% for error in form.content.errors %}
+                        <small class="text-danger">{{ error }}</small>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                <small class="form-text text-muted">Write your post content here. You can use basic HTML tags.</small>
+            </div>
+            
+            <div class="form-tips">
+                <h4>Tips for a great blog post:</h4>
+                <ul>
+                    <li>Start with a compelling introduction</li>
+                    <li>Use headings to organize your content</li>
+                    <li>Break up long paragraphs for readability</li>
+                    <li>End with a conclusion or call to action</li>
+                </ul>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-success btn-lg">
+                    <i class="fas fa-paper-plane"></i> {{ submit_text|default:"Publish Post" }}
+                </button>
+                <a href="{% if post %}{% url 'post-detail' post.pk %}{% else %}{% url 'post-list' %}{% endif %}" 
+                   class="btn btn-lg">
+                    <i class="fas fa-times"></i> Cancel
+                </a>
+            </div>
+        </form>
+    </div>
 </div>
+
+<style>
+.post-form-container {
+    max-width: 800px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.post-form-header {
+    background: linear-gradient(135deg, #3498db 0%, #2c3e50 100%);
+    color: white;
+    padding: 40px;
+    text-align: center;
+}
+
+.post-form-header h1 {
+    margin: 0 0 10px 0;
+    font-size: 2.2rem;
+}
+
+.post-form-header p {
+    margin: 0;
+    opacity: 0.9;
+    font-size: 1.1rem;
+}
+
+.post-form-wrapper {
+    padding: 40px;
+}
+
+.form-group {
+    margin-bottom: 30px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #2c3e50;
+    font-size: 1.1rem;
+}
+
+.form-tips {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    margin: 30px 0;
+    border-left: 4px solid #3498db;
+}
+
+.form-tips h4 {
+    color: #2c3e50;
+    margin-bottom: 10px;
+}
+
+.form-tips ul {
+    margin: 0;
+    padding-left: 20px;
+    color: #555;
+}
+
+.form-tips li {
+    margin-bottom: 5px;
+}
+
+.form-actions {
+    display: flex;
+    gap: 15px;
+    margin-top: 40px;
+    padding-top: 30px;
+    border-top: 1px solid #eee;
+}
+
+.btn-lg {
+    padding: 12px 30px;
+    font-size: 1.1rem;
+}
+
+@media (max-width: 768px) {
+    .post-form-container {
+        margin: 0 20px;
+    }
+    
+    .post-form-header {
+        padding: 30px 20px;
+    }
+    
+    .post-form-wrapper {
+        padding: 30px 20px;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+    }
+    
+    .btn-lg {
+        width: 100%;
+        text-align: center;
+    }
+}
+</style>
 {% endblock %}

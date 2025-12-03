@@ -3,22 +3,24 @@ from . import views
 from django.contrib.auth import views as auth_views
 
 urlpatterns = [
-    # Home and post URLs
+    # Home URL
     path('', views.home, name='home'),
-    path('posts/', views.post_list, name='post-list'),
-    path('post/<int:pk>/', views.post_detail, name='post-detail'),
-    path('post/new/', views.post_create, name='post-create'),
-    path('post/<int:pk>/edit/', views.post_update, name='post-update'),
-    path('post/<int:pk>/delete/', views.post_delete, name='post-delete'),
     
-    # Authentication URLs
+    # Blog Post URLs (Class-Based Views)
+    path('posts/', views.PostListView.as_view(), name='post-list'),
+    path('post/<int:pk>/', views.PostDetailView.as_view(), name='post-detail'),
+    path('post/new/', views.PostCreateView.as_view(), name='post-create'),
+    path('post/<int:pk>/edit/', views.PostUpdateView.as_view(), name='post-update'),
+    path('post/<int:pk>/delete/', views.PostDeleteView.as_view(), name='post-delete'),
+    
+    # Authentication URLs (Function-Based Views)
     path('register/', views.register, name='register'),
     path('login/', views.user_login, name='login'),
     path('logout/', views.user_logout, name='logout'),
     path('profile/', views.profile, name='profile'),
     path('profile/change-password/', views.change_password, name='change-password'),
     
-    # Password reset URLs (using Django's built-in views)
+    # Password Reset URLs
     path('password-reset/', 
          auth_views.PasswordResetView.as_view(
              template_name='blog/password_reset.html'
