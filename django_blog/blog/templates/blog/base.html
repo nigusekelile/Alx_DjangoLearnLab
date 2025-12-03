@@ -13,10 +13,20 @@
             <ul>
                 <li><a href="{% url 'home' %}">Home</a></li>
                 <li><a href="{% url 'post-list' %}">Blog Posts</a></li>
+                
                 {% if user.is_authenticated %}
                     <li><a href="{% url 'post-create' %}">New Post</a></li>
-                    <li><a href="{% url 'logout' %}">Logout</a></li>
-                    <li><span>Welcome, {{ user.username }}</span></li>
+                    <li class="dropdown">
+                        <a href="#" class="dropdown-toggle">
+                            <span>Welcome, {{ user.username }}</span> ▼
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a href="{% url 'profile' %}">Profile</a></li>
+                            <li><a href="{% url 'change-password' %}">Change Password</a></li>
+                            <li class="divider"></li>
+                            <li><a href="{% url 'logout' %}">Logout</a></li>
+                        </ul>
+                    </li>
                 {% else %}
                     <li><a href="{% url 'login' %}">Login</a></li>
                     <li><a href="{% url 'register' %}">Register</a></li>
@@ -30,6 +40,7 @@
             {% for message in messages %}
                 <div class="alert alert-{{ message.tags }}">
                     {{ message }}
+                    <button type="button" class="close" onclick="this.parentElement.style.display='none'">&times;</button>
                 </div>
             {% endfor %}
         {% endif %}

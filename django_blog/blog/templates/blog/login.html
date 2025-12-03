@@ -6,35 +6,53 @@
 <div class="auth-form">
     <h1>Login</h1>
     
-    <form method="post">
+    <form method="post" novalidate>
         {% csrf_token %}
         
+        {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+                {% for error in form.non_field_errors %}
+                    {{ error }}
+                {% endfor %}
+            </div>
+        {% endif %}
+        
         <div class="form-group">
-            <label for="id_username">Username:</label>
+            <label for="{{ form.username.id_for_label }}">Username:</label>
             {{ form.username }}
             {% if form.username.errors %}
-                <div class="error">{{ form.username.errors }}</div>
+                <div class="error-message">
+                    {% for error in form.username.errors %}
+                        <small class="text-danger">{{ error }}</small>
+                    {% endfor %}
+                </div>
             {% endif %}
         </div>
         
         <div class="form-group">
-            <label for="id_password">Password:</label>
+            <label for="{{ form.password.id_for_label }}">Password:</label>
             {{ form.password }}
             {% if form.password.errors %}
-                <div class="error">{{ form.password.errors }}</div>
+                <div class="error-message">
+                    {% for error in form.password.errors %}
+                        <small class="text-danger">{{ error }}</small>
+                    {% endfor %}
+                </div>
             {% endif %}
         </div>
         
-        <button type="submit" class="btn btn-success">Login</button>
-        <p style="margin-top: 20px;">
-            Don't have an account? <a href="{% url 'register' %}">Register here</a>
-        </p>
+        <div class="form-group">
+            <button type="submit" class="btn btn-success btn-block">Login</button>
+        </div>
+        
+        <div class="form-links">
+            <p class="text-center">
+                Don't have an account? <a href="{% url 'register' %}">Register here</a>
+            </p>
+            <p class="text-center">
+                Forgot your password? <a href="{% url 'password_reset' %}">Reset it here</a>
+            </p>
+        </div>
     </form>
 </div>
-
-<script>
-// Add placeholders to form fields
-document.getElementById('id_username').placeholder = 'Enter your username';
-document.getElementById('id_password').placeholder = 'Enter your password';
-</script>
 {% endblock %}

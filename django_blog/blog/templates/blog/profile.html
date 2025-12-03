@@ -1,0 +1,296 @@
+{% extends 'blog/base.html' %}
+
+{% block title %}Profile - Django Blog{% endblock %}
+
+{% block content %}
+<div class="profile-container">
+    <div class="profile-header">
+        <h1>Your Profile</h1>
+    </div>
+    
+    <div class="profile-content">
+        <div class="profile-card">
+            <div class="profile-picture-section">
+                {% if user.profile.profile_picture %}
+                    <img src="{{ user.profile.profile_picture_url }}" alt="Profile Picture" class="profile-picture">
+                {% else %}
+                    <div class="default-profile-picture">
+                        <span>{{ user.username|first|upper }}</span>
+                    </div>
+                {% endif %}
+            </div>
+            
+            <div class="profile-info">
+                <h2>{{ user.username }}</h2>
+                <p class="email">{{ user.email }}</p>
+                
+                {% if user.first_name or user.last_name %}
+                <p class="full-name">
+                    <strong>Name:</strong> {{ user.first_name }} {{ user.last_name }}
+                </p>
+                {% endif %}
+                
+                {% if user.profile.bio %}
+                <div class="bio-section">
+                    <h3>About Me</h3>
+                    <p>{{ user.profile.bio|linebreaks }}</p>
+                </div>
+                {% endif %}
+                
+                <div class="profile-stats">
+                    <div class="stat">
+                        <span class="stat-number">{{ user.post_set.count }}</span>
+                        <span class="stat-label">Posts</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-number">{{ user.profile.date_created|date:"Y-m-d" }}</span>
+                        <span class="stat-label">Member since</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="profile-actions">
+            <a href="{% url 'change-password' %}" class="btn">Change Password</a>
+            <a href="#edit-profile" class="btn btn-success" onclick="document.getElementById('edit-profile-form').style.display='block'">Edit Profile</a>
+        </div>
+        
+        <div class="edit-profile-form" id="edit-profile-form" style="display: none;">
+            <h2>Edit Profile</h2>
+            
+            <form method="post" enctype="multipart/form-data" novalidate>
+                {% csrf_token %}
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="{{ user_form.username.id_for_label }}">Username:</label>
+                        {{ user_form.username }}
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ user_form.email.id_for_label }}">Email:</label>
+                        {{ user_form.email }}
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="{{ user_form.first_name.id_for_label }}">First Name:</label>
+                        {{ user_form.first_name }}
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ user_form.last_name.id_for_label }}">Last Name:</label>
+                        {{ user_form.last_name }}
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="{{ profile_form.bio.id_for_label }}">Bio:</label>
+                    {{ profile_form.bio }}
+                </div>
+                
+                <div class="form-group">
+                    <label for="{{ profile_form.profile_picture.id_for_label }}">Profile Picture:</label>
+                    {{ profile_form.profile_picture }}
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-success">Save Changes</button>
+                    <button type="button" class="btn" onclick="document.getElementById('edit-profile-form').style.display='none'">Cancel</button>
+                </div>
+            </form>
+        </div>
+        
+        <div class="user-posts">
+            <h2>Your Recent Posts</h2>
+            {% if user.post_set.all %}
+                <div class="post-list">
+                    {% for post in user.post_set.all|slice:":5" %}
+                    <div class="post-card">
+                        <h3><a href="{% url 'post-detail' post.pk %}">{{ post.title }}</a></h3>
+                        <p>{{ post.content|truncatewords:30 }}</p>
+                        <div class="post-meta">
+                            <span>{{ post.published_date|date:"F d, Y" }}</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <a href="{% url 'post-list' %}" class="btn">View All Posts</a>
+            {% else %}
+                <p>You haven't written any posts yet.</p>
+                <a href="{% url 'post-create' %}" class="btn btn-success">Write Your First Post</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.profile-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.profile-card {
+    background: white;
+    border-radius: 10px;
+    padding: 40px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    display: flex;
+    gap: 40px;
+    margin-bottom: 30px;
+}
+
+.profile-picture-section {
+    flex: 0 0 150px;
+}
+
+.profile-picture {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid #3498db;
+}
+
+.default-profile-picture {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    background: #3498db;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 3px solid #2980b9;
+}
+
+.default-profile-picture span {
+    color: white;
+    font-size: 60px;
+    font-weight: bold;
+}
+
+.profile-info {
+    flex: 1;
+}
+
+.profile-info h2 {
+    font-size: 2rem;
+    color: #2c3e50;
+    margin-bottom: 10px;
+}
+
+.email {
+    color: #7f8c8d;
+    font-size: 1.1rem;
+    margin-bottom: 20px;
+}
+
+.full-name {
+    font-size: 1.1rem;
+    margin-bottom: 20px;
+}
+
+.bio-section {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    margin: 20px 0;
+}
+
+.bio-section h3 {
+    color: #2c3e50;
+    margin-bottom: 10px;
+}
+
+.profile-stats {
+    display: flex;
+    gap: 40px;
+    margin-top: 30px;
+}
+
+.stat {
+    text-align: center;
+}
+
+.stat-number {
+    display: block;
+    font-size: 2rem;
+    font-weight: bold;
+    color: #3498db;
+}
+
+.stat-label {
+    display: block;
+    color: #7f8c8d;
+    font-size: 0.9rem;
+}
+
+.profile-actions {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+.edit-profile-form {
+    background: white;
+    border-radius: 10px;
+    padding: 40px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    margin-bottom: 30px;
+}
+
+.edit-profile-form h2 {
+    margin-bottom: 30px;
+    color: #2c3e50;
+}
+
+.form-row {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.form-row .form-group {
+    flex: 1;
+}
+
+.form-actions {
+    display: flex;
+    gap: 15px;
+    margin-top: 30px;
+}
+
+.user-posts {
+    background: white;
+    border-radius: 10px;
+    padding: 40px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.user-posts h2 {
+    margin-bottom: 30px;
+    color: #2c3e50;
+}
+
+@media (max-width: 768px) {
+    .profile-card {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+    
+    .profile-picture-section {
+        margin-bottom: 20px;
+    }
+    
+    .form-row {
+        flex-direction: column;
+        gap: 0;
+    }
+    
+    .profile-stats {
+        justify-content: center;
+    }
+}
+</style>
+{% endblock %}

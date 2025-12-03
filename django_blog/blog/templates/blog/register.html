@@ -6,44 +6,79 @@
 <div class="auth-form">
     <h1>Register</h1>
     
-    <form method="post">
+    <form method="post" novalidate>
         {% csrf_token %}
         
+        {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+                {% for error in form.non_field_errors %}
+                    {{ error }}
+                {% endfor %}
+            </div>
+        {% endif %}
+        
         <div class="form-group">
-            <label for="id_username">Username:</label>
+            <label for="{{ form.username.id_for_label }}">Username:</label>
             {{ form.username }}
             {% if form.username.errors %}
-                <div class="error">{{ form.username.errors }}</div>
+                <div class="error-message">
+                    {% for error in form.username.errors %}
+                        <small class="text-danger">{{ error }}</small>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            <small class="form-text text-muted">Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only.</small>
+        </div>
+        
+        <div class="form-group">
+            <label for="{{ form.email.id_for_label }}">Email:</label>
+            {{ form.email }}
+            {% if form.email.errors %}
+                <div class="error-message">
+                    {% for error in form.email.errors %}
+                        <small class="text-danger">{{ error }}</small>
+                    {% endfor %}
+                </div>
             {% endif %}
         </div>
         
         <div class="form-group">
-            <label for="id_password1">Password:</label>
+            <label for="{{ form.password1.id_for_label }}">Password:</label>
             {{ form.password1 }}
             {% if form.password1.errors %}
-                <div class="error">{{ form.password1.errors }}</div>
+                <div class="error-message">
+                    {% for error in form.password1.errors %}
+                        <small class="text-danger">{{ error }}</small>
+                    {% endfor %}
+                </div>
             {% endif %}
+            <small class="form-text text-muted">
+                Your password must contain at least 8 characters, can't be too similar to your other personal information, can't be a commonly used password, and can't be entirely numeric.
+            </small>
         </div>
         
         <div class="form-group">
-            <label for="id_password2">Confirm Password:</label>
+            <label for="{{ form.password2.id_for_label }}">Confirm Password:</label>
             {{ form.password2 }}
             {% if form.password2.errors %}
-                <div class="error">{{ form.password2.errors }}</div>
+                <div class="error-message">
+                    {% for error in form.password2.errors %}
+                        <small class="text-danger">{{ error }}</small>
+                    {% endfor %}
+                </div>
             {% endif %}
+            <small class="form-text text-muted">Enter the same password as before, for verification.</small>
         </div>
         
-        <button type="submit" class="btn btn-success">Register</button>
-        <p style="margin-top: 20px;">
-            Already have an account? <a href="{% url 'login' %}">Login here</a>
-        </p>
+        <div class="form-group">
+            <button type="submit" class="btn btn-success btn-block">Register</button>
+        </div>
+        
+        <div class="form-links">
+            <p class="text-center">
+                Already have an account? <a href="{% url 'login' %}">Login here</a>
+            </p>
+        </div>
     </form>
 </div>
-
-<script>
-// Add placeholders to form fields
-document.getElementById('id_username').placeholder = 'Enter your username';
-document.getElementById('id_password1').placeholder = 'Enter your password';
-document.getElementById('id_password2').placeholder = 'Confirm your password';
-</script>
 {% endblock %}
