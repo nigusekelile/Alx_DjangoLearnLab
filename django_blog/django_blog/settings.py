@@ -38,6 +38,11 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    
+    # Third-party apps
+    'taggit',  # Django taggit for tagging functionality
+    
+    # Local apps
     'blog',  # Our blog app
 ]
 
@@ -66,6 +71,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'blog.context_processors.tags_and_search',  # Custom context processor
             ],
         },
     },
@@ -81,37 +87,8 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
-        # SQLite doesn't use USER, PASSWORD, HOST, or PORT settings
-        # For PostgreSQL or MySQL, you would add those settings
     }
 }
-
-# Example PostgreSQL configuration (commented out):
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': 'django_blog',
-#         'USER': 'postgres_user',      # Database username
-#         'PASSWORD': 'your_password',  # Database password
-#         'HOST': 'localhost',          # Database host
-#         'PORT': '5432',               # Database port (default for PostgreSQL)
-#     }
-# }
-
-# Example MySQL configuration (commented out):
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.mysql',
-#         'NAME': 'django_blog',
-#         'USER': 'mysql_user',         # Database username
-#         'PASSWORD': 'your_password',  # Database password
-#         'HOST': 'localhost',          # Database host
-#         'PORT': '3306',               # Database port (default for MySQL)
-#         'OPTIONS': {
-#             'charset': 'utf8mb4',
-#         }
-#     }
-# }
 
 
 # Password validation
@@ -159,8 +136,10 @@ STATICFILES_DIRS = [
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Add to the end of the file
-import os
+# Login/Logout URLs
+LOGIN_REDIRECT_URL = 'home'
+LOGOUT_REDIRECT_URL = 'home'
+LOGIN_URL = 'login'
 
 # Media files configuration
 MEDIA_URL = '/media/'
@@ -172,7 +151,7 @@ EMAIL_HOST = 'localhost'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 
-# Login URLs
-LOGIN_REDIRECT_URL = 'home'
-LOGOUT_REDIRECT_URL = 'home'
-LOGIN_URL = 'login'
+# Taggit configuration
+TAGGIT_CASE_INSENSITIVE = True
+TAGGIT_TAGS_FROM_STRING = 'blog.utils.custom_tags_from_string'
+TAGGIT_STRING_FROM_TAGS = 'blog.utils.custom_string_from_tags'
