@@ -1,59 +1,80 @@
-from django.urls import path
-from . import views
-from django.contrib.auth import views as auth_views
+from taggit.models import Tag
+from django.utils.text import slugify
 
-urlpatterns = [
-    # Home URL
-    path('', views.home, name='home'),
+def custom_tags_from_string(tag_string, tag_model=Tag):
+    """
+    Custom function to convert tag string to list of Tag objects
+    """
+    if not tag_string:
+        return []
     
-    # Blog Post URLs
-    path('posts/', views.PostListView.as_view(), name='post-list'),
-    path('post/<int:pk>/', views.PostDetailView.as_view(), name='post-detail'),
-    path('post/new/', views.PostCreateView.as_view(), name='post-create'),
-    path('post/<int:pk>/edit/', views.PostUpdateView.as_view(), name='post-update'),
-    path('post/<int:pk>/delete/', views.PostDeleteView.as_view(), name='post-delete'),
+    tag_names = [name.strip() for name in tag_string.split(',') if name.strip()]
     
-    # Tag URLs
-    path('tags/', views.TagListView.as_view(), name='tag-list'),
-    path('tags/<slug:slug>/', views.PostsByTagView.as_view(), name='posts-by-tag'),
-    path('tag-suggestions/', views.tag_suggestions, name='tag-suggestions'),
+    # Get existing tags
+    existing_tags = tag_model.objects.filter(name__in=tag_names)
+    existing_tag_names = set(tag.name for tag in existing_tags)
     
-    # Search URL
-    path('search/', views.SearchView.as_view(), name='search'),
+    # Create new tags
+    new_tags = []
+    for name in tag_names:
+        if name not in existing_tag_names:
+            tag = tag_model(name=name)
+            tag.save()
+            new_tags.append(tag)
+            existing_tag_names.add(name)
     
-    # Comment URLs
-    path('post/<int:pk>/comment/', views.add_comment, name='add-comment'),
-    path('post/<int:pk>/comment/new/', views.CommentCreateView.as_view(), name='comment-create'),
-    path('comment/<int:pk>/edit/', views.CommentUpdateView.as_view(), name='comment-edit'),
-    path('comment/<int:pk>/delete/', views.CommentDeleteView.as_view(), name='comment-delete'),
-    path('post/<int:pk>/comment/ajax/', views.add_comment_ajax, name='add-comment-ajax'),
+    # Return all tags
+    return list(existing_tags) + new_tags
+
+def custom_string_from_tags(tags):
+    """
+    Custom function to convert Tag objects to string
+    """
+    return ', '.join(tag.name for tag in tags)
+
+def get_popular_tags(limit=10):
+    """
+    Get most popular tags based on usage count
+    """
+    from taggit.models import TaggedItem
+    from django.db.models import Count
     
-    # Authentication URLs
-    path('register/', views.register, name='register'),
-    path('login/', views.user_login, name='login'),
-    path('logout/', views.user_logout, name='logout'),
-    path('profile/', views.profile, name='profile'),
-    path('profile/change-password/', views.change_password, name='change-password'),
+    popular_tags = Tag.objects.annotate(
+        num_times=Count('taggit_taggeditem_items')
+    ).order_by('-num_times')[:limit]
     
-    # Password Reset URLs
-    path('password-reset/', 
-         auth_views.PasswordResetView.as_view(
-             template_name='blog/password_reset.html'
-         ), 
-         name='password_reset'),
-    path('password-reset/done/', 
-         auth_views.PasswordResetDoneView.as_view(
-             template_name='blog/password_reset_done.html'
-         ), 
-         name='password_reset_done'),
-    path('password-reset-confirm/<uidb64>/<token>/', 
-         auth_views.PasswordResetConfirmView.as_view(
-             template_name='blog/password_reset_confirm.html'
-         ), 
-         name='password_reset_confirm'),
-    path('password-reset-complete/', 
-         auth_views.PasswordResetCompleteView.as_view(
-             template_name='blog/password_reset_complete.html'
-         ), 
-         name='password_reset_complete'),
-]
+    return popular_tags
+
+def get_tag_cloud(min_count=1, max_count=50):
+    """
+    Generate tag cloud data with sizes based on frequency
+    """
+    from taggit.models import TaggedItem
+    from django.db.models import Count
+    
+    tags = Tag.objects.annotate(
+        num_times=Count('taggit_taggeditem_items')
+    ).filter(num_times__gte=min_count)
+    
+    if not tags:
+        return []
+    
+    # Get min and max counts for scaling
+    min_tag_count = min(tag.num_times for tag in tags)
+    max_tag_count = max(tag.num_times for tag in tags)
+    
+    tag_cloud = []
+    for tag in tags:
+        # Calculate font size (1.0 to 3.0)
+        if max_tag_count == min_tag_count:
+            size = 2.0
+        else:
+            size = 1.0 + 2.0 * (tag.num_times - min_tag_count) / (max_tag_count - min_tag_count)
+        
+        tag_cloud.append({
+            'tag': tag,
+            'size': size,
+            'count': tag.num_times,
+        })
+    
+    return tag_cloud

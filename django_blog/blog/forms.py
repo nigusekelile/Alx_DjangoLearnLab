@@ -1,7 +1,8 @@
 from django import forms
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
-from .models import Profile, Post, Comment, Tag
+from .models import Profile, Post, Comment
+from taggit.models import Tag
 
 class CustomUserCreationForm(UserCreationForm):
     email = forms.EmailField(required=True, widget=forms.EmailInput(attrs={
@@ -64,19 +65,12 @@ class ProfileUpdateForm(forms.ModelForm):
                 })
 
 class PostCreateForm(forms.ModelForm):
-    tags_input = forms.CharField(
-        required=False,
-        widget=forms.TextInput(attrs={
-            'class': 'form-control',
-            'placeholder': 'Enter tags separated by commas (e.g., django, python, web-development)',
-            'id': 'tags-input'
-        }),
-        help_text="Separate tags with commas"
-    )
+    # django-taggit automatically handles tags through the model
+    # We'll use a custom widget for better UX
     
     class Meta:
         model = Post
-        fields = ['title', 'content']
+        fields = ['title', 'content', 'tags']
         widgets = {
             'title': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -87,15 +81,24 @@ class PostCreateForm(forms.ModelForm):
                 'placeholder': 'Write your post content here...',
                 'rows': 10
             }),
+            'tags': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter tags separated by commas (e.g., django, python, web)',
+                'data-role': 'tagsinput',
+                'id': 'id_tags'
+            }),
         }
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
-        # If editing existing post, pre-populate tags
+        # Add help text for tags field
+        self.fields['tags'].help_text = "Separate tags with commas"
+        
+        # If editing existing post, format tags as string
         if self.instance and self.instance.pk:
-            initial_tags = ', '.join(tag.name for tag in self.instance.tags.all())
-            self.fields['tags_input'].initial = initial_tags
+            tags_string = ', '.join(tag.name for tag in self.instance.tags.all())
+            self.initial['tags'] = tags_string
     
     def clean_title(self):
         title = self.cleaned_data.get('title')
@@ -108,31 +111,6 @@ class PostCreateForm(forms.ModelForm):
         if len(content) < 20:
             raise forms.ValidationError('Content must be at least 20 characters long.')
         return content
-    
-    def save(self, commit=True):
-        post = super().save(commit=False)
-        
-        if commit:
-            post.save()
-            
-            # Clear existing tags
-            post.tags.clear()
-            
-            # Process and add new tags
-            tags_input = self.cleaned_data.get('tags_input', '')
-            if tags_input:
-                tag_names = [name.strip() for name in tags_input.split(',') if name.strip()]
-                for tag_name in tag_names:
-                    # Get or create tag
-                    tag, created = Tag.objects.get_or_create(
-                        name=tag_name.lower(),
-                        defaults={'name': tag_name.lower()}
-                    )
-                    post.tags.add(tag)
-            
-            post.save()
-        
-        return post
 
 class CommentForm(forms.ModelForm):
     class Meta:
