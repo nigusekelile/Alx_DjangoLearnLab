@@ -224,3 +224,206 @@ def change_password(request):
         return redirect('profile')
     
     return render(request, 'blog/change_password.html')
+
+
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.contrib.auth import login, logout, authenticate
+from django.contrib import messages
+from django.contrib.auth.models import User
+from django.views.generic import (
+    ListView, 
+    DetailView, 
+    CreateView, 
+    UpdateView, 
+    DeleteView,
+    FormView
+)
+from django.urls import reverse_lazy
+from django.http import JsonResponse, HttpResponseForbidden
+from .models import Post, Profile, Comment
+from .forms import (
+    CustomUserCreationForm, 
+    CustomAuthenticationForm, 
+    UserUpdateForm, 
+    ProfileUpdateForm,
+    PostCreateForm,
+    CommentForm,
+    CommentEditForm
+)
+
+# Existing views remain...
+
+# Add to PostDetailView to include comments
+class PostDetailView(DetailView):
+    model = Post
+    template_name = 'blog/post_detail.html'
+    context_object_name = 'post'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        post = self.object
+        
+        # Get active comments for this post
+        comments = post.comments.filter(active=True)
+        
+        # Add comment form to context
+        context['comment_form'] = CommentForm()
+        context['comments'] = comments
+        context['comment_count'] = comments.count()
+        context['related_posts'] = Post.objects.filter(
+            author=post.author
+        ).exclude(pk=post.pk)[:3]
+        
+        return context
+
+# Comment Create View
+class CommentCreateView(LoginRequiredMixin, CreateView):
+    model = Comment
+    form_class = CommentForm
+    template_name = 'blog/comment_form.html'
+    
+    def form_valid(self, form):
+        post = get_object_or_404(Post, pk=self.kwargs['pk'])
+        form.instance.post = post
+        form.instance.author = self.request.user
+        
+        messages.success(self.request, 'Your comment has been posted successfully!')
+        return super().form_valid(form)
+    
+    def get_success_url(self):
+        return reverse_lazy('post-detail', kwargs={'pk': self.kwargs['pk']}) + '#comments-section'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['post'] = get_object_or_404(Post, pk=self.kwargs['pk'])
+        context['title'] = 'Add a Comment'
+        return context
+
+# Comment Update View
+class CommentUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+    model = Comment
+    form_class = CommentEditForm
+    template_name = 'blog/comment_form.html'
+    
+    def form_valid(self, form):
+        messages.success(self.request, 'Your comment has been updated successfully!')
+        return super().form_valid(form)
+    
+    def test_func(self):
+        comment = self.get_object()
+        return comment.can_edit(self.request.user)
+    
+    def handle_no_permission(self):
+        messages.error(self.request, 'You are not authorized to edit this comment.')
+        comment = self.get_object()
+        return redirect('post-detail', pk=comment.post.pk)
+    
+    def get_success_url(self):
+        comment = self.get_object()
+        return reverse_lazy('post-detail', kwargs={'pk': comment.post.pk}) + f'#comment-{comment.pk}'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['post'] = self.object.post
+        context['title'] = 'Edit Comment'
+        context['editing'] = True
+        return context
+
+# Comment Delete View
+class CommentDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
+    model = Comment
+    template_name = 'blog/comment_confirm_delete.html'
+    
+    def delete(self, request, *args, **kwargs):
+        messages.success(request, 'Your comment has been deleted successfully!')
+        return super().delete(request, *args, **kwargs)
+    
+    def test_func(self):
+        comment = self.get_object()
+        return comment.can_delete(self.request.user)
+    
+    def handle_no_permission(self):
+        messages.error(self.request, 'You are not authorized to delete this comment.')
+        comment = self.get_object()
+        return redirect('post-detail', pk=comment.post.pk)
+    
+    def get_success_url(self):
+        comment = self.get_object()
+        return reverse_lazy('post-detail', kwargs={'pk': comment.post.pk}) + '#comments-section'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['post'] = self.object.post
+        return context
+
+# AJAX Comment View (for real-time updates)
+@login_required
+def add_comment_ajax(request, pk):
+    """Handle AJAX comment submission"""
+    if request.method == 'POST' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        post = get_object_or_404(Post, pk=pk)
+        form = CommentForm(request.POST)
+        
+        if form.is_valid():
+            comment = form.save(commit=False)
+            comment.post = post
+            comment.author = request.user
+            comment.save()
+            
+            # Return comment data for AJAX rendering
+            return JsonResponse({
+                'success': True,
+                'comment_id': comment.pk,
+                'author': comment.author.username,
+                'author_url': comment.author.profile.profile_picture_url,
+                'content': comment.content,
+                'created_at': comment.get_time_since_created(),
+                'edit_url': comment.get_edit_url(),
+                'delete_url': comment.get_delete_url(),
+                'can_edit': comment.can_edit(request.user),
+                'can_delete': comment.can_delete(request.user),
+            })
+        else:
+            return JsonResponse({
+                'success': False,
+                'errors': form.errors
+            })
+    
+    return JsonResponse({'success': False, 'error': 'Invalid request'})
+
+# Function to handle inline comment submission (from post detail page)
+@login_required
+def add_comment(request, pk):
+    """Handle comment submission from post detail page"""
+    post = get_object_or_404(Post, pk=pk)
+    
+    if request.method == 'POST':
+        form = CommentForm(request.POST)
+        if form.is_valid():
+            comment = form.save(commit=False)
+            comment.post = post
+            comment.author = request.user
+            comment.save()
+            
+            messages.success(request, 'Your comment has been posted successfully!')
+            return redirect('post-detail', pk=pk)
+        else:
+            # If form is invalid, we need to re-render the post detail page
+            # with the form errors
+            context = {
+                'post': post,
+                'comment_form': form,
+                'comments': post.comments.filter(active=True),
+                'comment_count': post.comments.filter(active=True).count(),
+                'related_posts': Post.objects.filter(
+                    author=post.author
+                ).exclude(pk=post.pk)[:3],
+            }
+            return render(request, 'blog/post_detail.html', context)
+    
+    # If not POST, redirect to post detail
+    return redirect('post-detail', pk=pk)
+
+# The rest of the existing views remain unchanged...

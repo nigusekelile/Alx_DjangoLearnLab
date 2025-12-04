@@ -1,0 +1,213 @@
+{% extends 'blog/base.html' %}
+
+{% block title %}{{ title|default:"Add Comment" }} - Django Blog{% endblock %}
+
+{% block content %}
+<div class="comment-form-container">
+    <div class="comment-form-header">
+        <h1>{{ title|default:"Add a Comment" }}</h1>
+        <p>
+            {% if editing %}
+                Editing your comment on: 
+            {% else %}
+                Adding a comment to: 
+            {% endif %}
+            <a href="{% url 'post-detail' post.pk %}" class="post-link">{{ post.title }}</a>
+        </p>
+    </div>
+    
+    <div class="comment-form-wrapper">
+        <form method="post" novalidate>
+            {% csrf_token %}
+            
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+                {% for error in form.non_field_errors %}
+                    {{ error }}
+                {% endfor %}
+            </div>
+            {% endif %}
+            
+            <div class="form-group">
+                {{ form.content }}
+                {% if form.content.errors %}
+                <div class="error-message">
+                    {% for error in form.content.errors %}
+                        <small class="text-danger">{{ error }}</small>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                <div class="char-counter">
+                    <span id="charCount">0</span>/1000 characters
+                </div>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-success">
+                    <i class="fas fa-paper-plane"></i>
+                    {% if editing %}Update Comment{% else %}Post Comment{% endif %}
+                </button>
+                <a href="{% url 'post-detail' post.pk %}" class="btn">
+                    <i class="fas fa-times"></i> Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+    
+    <div class="comment-guidelines">
+        <h3><i class="fas fa-info-circle"></i> Comment Guidelines</h3>
+        <ul>
+            <li>Be respectful and constructive</li>
+            <li>Stay on topic</li>
+            <li>No spam or self-promotion</li>
+            <li>No offensive language</li>
+            <li>Maximum 1000 characters</li>
+        </ul>
+    </div>
+</div>
+
+<style>
+.comment-form-container {
+    max-width: 800px;
+    margin: 30px auto;
+    background: white;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.comment-form-header {
+    background: linear-gradient(135deg, #3498db 0%, #2c3e50 100%);
+    color: white;
+    padding: 30px;
+    text-align: center;
+}
+
+.comment-form-header h1 {
+    margin: 0 0 15px 0;
+    font-size: 2rem;
+}
+
+.comment-form-header p {
+    margin: 0;
+    opacity: 0.9;
+    font-size: 1.1rem;
+}
+
+.post-link {
+    color: #f1c40f;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.post-link:hover {
+    color: #f39c12;
+    text-decoration: underline;
+}
+
+.comment-form-wrapper {
+    padding: 40px;
+}
+
+.form-group {
+    margin-bottom: 25px;
+}
+
+.char-counter {
+    text-align: right;
+    color: #95a5a6;
+    font-size: 0.9rem;
+    margin-top: 5px;
+}
+
+.form-actions {
+    display: flex;
+    gap: 15px;
+    margin-top: 30px;
+}
+
+.comment-guidelines {
+    background: #f8f9fa;
+    padding: 25px 40px;
+    border-top: 1px solid #eee;
+}
+
+.comment-guidelines h3 {
+    color: #2c3e50;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.comment-guidelines ul {
+    list-style-type: none;
+    padding-left: 0;
+}
+
+.comment-guidelines li {
+    padding: 8px 0;
+    color: #555;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.comment-guidelines li:before {
+    content: "✓";
+    color: #2ecc71;
+    font-weight: bold;
+}
+
+@media (max-width: 768px) {
+    .comment-form-container {
+        margin: 20px;
+    }
+    
+    .comment-form-header {
+        padding: 20px;
+    }
+    
+    .comment-form-wrapper {
+        padding: 30px 20px;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+    }
+}
+</style>
+
+<script>
+// Character counter functionality
+function updateCharCounter(textarea) {
+    const charCount = textarea.value.length;
+    const counter = document.getElementById('charCount');
+    if (counter) {
+        counter.textContent = charCount;
+        
+        // Change color based on length
+        if (charCount > 900) {
+            counter.style.color = '#e74c3c';
+        } else if (charCount > 750) {
+            counter.style.color = '#f39c12';
+        } else {
+            counter.style.color = '#2ecc71';
+        }
+    }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    const textarea = document.querySelector('textarea');
+    if (textarea) {
+        updateCharCounter(textarea);
+        
+        // Also trigger on input
+        textarea.addEventListener('input', function() {
+            updateCharCounter(this);
+        });
+    }
+});
+</script>
+{% endblock %}

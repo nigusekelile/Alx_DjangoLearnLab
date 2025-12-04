@@ -13,6 +13,15 @@ urlpatterns = [
     path('post/<int:pk>/edit/', views.PostUpdateView.as_view(), name='post-update'),
     path('post/<int:pk>/delete/', views.PostDeleteView.as_view(), name='post-delete'),
     
+    # Comment URLs
+    path('post/<int:pk>/comment/', views.add_comment, name='add-comment'),
+    path('post/<int:pk>/comment/new/', views.CommentCreateView.as_view(), name='comment-create'),
+    path('comment/<int:pk>/edit/', views.CommentUpdateView.as_view(), name='comment-edit'),
+    path('comment/<int:pk>/delete/', views.CommentDeleteView.as_view(), name='comment-delete'),
+    
+    # AJAX Comment URL
+    path('post/<int:pk>/comment/ajax/', views.add_comment_ajax, name='add-comment-ajax'),
+    
     # Authentication URLs (Function-Based Views)
     path('register/', views.register, name='register'),
     path('login/', views.user_login, name='login'),

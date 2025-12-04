@@ -1,0 +1,43 @@
+# Comment Functionality Documentation
+
+## Overview
+The comment system enhances interactivity by allowing users to leave comments on blog posts. Authenticated users can post, edit, and delete their comments, fostering community engagement.
+
+## Features
+
+### 1. Comment Creation
+- Authenticated users can post comments on any blog post
+- Rich text formatting support
+- Character limit: 1000 characters
+- Real-time character counter
+
+### 2. Comment Display
+- Comments are displayed in chronological order (oldest first)
+- Each comment shows:
+  - Author's avatar and username
+  - Time since posting (human-readable format)
+  - Comment content with formatting
+  - Edit/Delete options (for authors and staff)
+
+### 3. Comment Management
+- Authors can edit their own comments
+- Authors can delete their own comments
+- Staff users can moderate all comments
+- Comment editing history is tracked
+
+### 4. Comment Moderation
+- Comments marked as `active=True` are visible
+- Inactive comments are hidden (for moderation)
+- Staff users can manage comment visibility
+
+## Models
+
+### Comment Model
+```python
+class Comment(models.Model):
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='comments')
+    author = models.ForeignKey(User, on_delete=models.CASCADE)
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    active = models.BooleanField(default=True)
