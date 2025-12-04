@@ -109,13 +109,44 @@ from django.utils import timezone
 from django.urls import reverse
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from django.utils.text import slugify
 import os
+
+class Tag(models.Model):
+    name = models.CharField(max_length=50, unique=True)
+    slug = models.SlugField(max_length=50, unique=True)
+    description = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['name']
+    
+    def __str__(self):
+        return self.name
+    
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
+    
+    def get_absolute_url(self):
+        return reverse('posts-by-tag', kwargs={'slug': self.slug})
+    
+    def get_post_count(self):
+        """Return number of posts with this tag"""
+        return self.posts.count()
+    
+    @classmethod
+    def get_popular_tags(cls, limit=10):
+        """Get most popular tags based on post count"""
+        return cls.objects.annotate(post_count=models.Count('posts')).order_by('-post_count')[:limit]
 
 class Post(models.Model):
     title = models.CharField(max_length=200)
     content = models.TextField()
     published_date = models.DateTimeField(auto_now_add=True)
     author = models.ForeignKey(User, on_delete=models.CASCADE)
+    tags = models.ManyToManyField(Tag, related_name='posts', blank=True)
     
     def __str__(self):
         return self.title
@@ -150,6 +181,22 @@ class Post(models.Model):
         """Return the number of comments for this post"""
         return self.comments.count()
     
+    def get_related_posts(self, limit=3):
+        """Get related posts based on tags"""
+        # Get posts with similar tags, excluding current post
+        similar_posts = Post.objects.filter(
+            tags__in=self.tags.all()
+        ).exclude(pk=self.pk).distinct()
+        
+        # If not enough similar posts, get recent posts by same author
+        if similar_posts.count() < limit:
+            author_posts = Post.objects.filter(
+                author=self.author
+            ).exclude(pk=self.pk).distinct()
+            similar_posts = list(similar_posts) + list(author_posts)
+        
+        return similar_posts[:limit]
+    
     class Meta:
         ordering = ['-published_date']
 
@@ -159,7 +206,7 @@ class Comment(models.Model):
     content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    active = models.BooleanField(default=True)  # For comment moderation
+    active = models.BooleanField(default=True)
     
     class Meta:
         ordering = ['created_at']

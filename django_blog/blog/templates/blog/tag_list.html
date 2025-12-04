@@ -1,0 +1,262 @@
+{% extends 'blog/base.html' %}
+
+{% block title %}Tags - Django Blog{% endblock %}
+
+{% block content %}
+<div class="tags-container">
+    <div class="tags-header">
+        <h1><i class="fas fa-tags"></i> All Tags</h1>
+        <p>Browse posts by topics and categories</p>
+    </div>
+    
+    <div class="tags-search">
+        <form method="get" class="search-form-inline">
+            <div class="input-group">
+                <input type="text" 
+                       name="search" 
+                       class="form-control" 
+                       placeholder="Search tags..."
+                       value="{{ request.GET.search|default:'' }}">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+        </form>
+    </div>
+    
+    {% if tags %}
+        <div class="tags-grid">
+            {% for tag in tags %}
+            <div class="tag-card">
+                <div class="tag-header">
+                    <h3>
+                        <a href="{% url 'posts-by-tag' tag.slug %}">
+                            <i class="fas fa-tag"></i> {{ tag.name }}
+                        </a>
+                    </h3>
+                    <span class="tag-count">{{ tag.post_count }} posts</span>
+                </div>
+                
+                {% if tag.description %}
+                <div class="tag-description">
+                    <p>{{ tag.description|truncatewords:20 }}</p>
+                </div>
+                {% endif %}
+                
+                <div class="tag-actions">
+                    <a href="{% url 'posts-by-tag' tag.slug %}" class="btn btn-sm">
+                        View Posts
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Pagination -->
+        {% if is_paginated %}
+        <div class="pagination">
+            {% if page_obj.has_previous %}
+                <a href="?page=1{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" class="btn btn-sm">
+                    First
+                </a>
+                <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" class="btn btn-sm">
+                    Previous
+                </a>
+            {% endif %}
+            
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                    <span class="btn btn-sm active">{{ num }}</span>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <a href="?page={{ num }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" class="btn btn-sm">
+                        {{ num }}
+                    </a>
+                {% endif %}
+            {% endfor %}
+            
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" class="btn btn-sm">
+                    Next
+                </a>
+                <a href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" class="btn btn-sm">
+                    Last
+                </a>
+            {% endif %}
+        </div>
+        {% endif %}
+    {% else %}
+        <div class="no-tags">
+            <i class="fas fa-tags" style="font-size: 4rem; color: #bdc3c7; margin-bottom: 20px;"></i>
+            <h2>No Tags Found</h2>
+            <p>{% if request.GET.search %}No tags match your search criteria.{% else %}No tags have been created yet.{% endif %}</p>
+            {% if user.is_authenticated %}
+                <a href="{% url 'post-create' %}" class="btn btn-success">
+                    <i class="fas fa-plus"></i> Create a Post with Tags
+                </a>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
+
+<style>
+.tags-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.tags-header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.tags-header h1 {
+    color: #2c3e50;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+}
+
+.tags-header p {
+    color: #7f8c8d;
+    font-size: 1.1rem;
+}
+
+.tags-search {
+    max-width: 500px;
+    margin: 0 auto 40px;
+}
+
+.search-form-inline .input-group {
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    border-radius: 25px;
+    overflow: hidden;
+}
+
+.search-form-inline input {
+    border: none;
+    padding: 15px 20px;
+    font-size: 1rem;
+}
+
+.search-form-inline button {
+    border: none;
+    padding: 15px 25px;
+    background: #3498db;
+    color: white;
+}
+
+.search-form-inline button:hover {
+    background: #2980b9;
+}
+
+.tags-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 25px;
+    margin-bottom: 40px;
+}
+
+.tag-card {
+    background: white;
+    border-radius: 10px;
+    padding: 25px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+.tag-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0,0,0,0.15);
+}
+
+.tag-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 15px;
+}
+
+.tag-header h3 {
+    margin: 0;
+    font-size: 1.3rem;
+}
+
+.tag-header h3 a {
+    color: #2c3e50;
+    text-decoration: none;
+}
+
+.tag-header h3 a:hover {
+    color: #3498db;
+}
+
+.tag-count {
+    background: #e8f4fc;
+    color: #3498db;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.tag-description {
+    color: #666;
+    line-height: 1.6;
+    margin-bottom: 20px;
+    flex-grow: 1;
+}
+
+.tag-actions {
+    margin-top: auto;
+}
+
+.no-tags {
+    text-align: center;
+    padding: 60px 20px;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.no-tags h2 {
+    color: #2c3e50;
+    margin-bottom: 10px;
+}
+
+.no-tags p {
+    color: #7f8c8d;
+    margin-bottom: 20px;
+    font-size: 1.1rem;
+}
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 40px;
+}
+
+.pagination .active {
+    background-color: #3498db;
+    color: white;
+    cursor: default;
+}
+
+@media (max-width: 768px) {
+    .tags-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .tag-header {
+        flex-direction: column;
+        gap: 10px;
+    }
+}
+</style>
+{% endblock %}

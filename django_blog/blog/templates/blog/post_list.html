@@ -289,4 +289,47 @@
     }
 }
 </style>
+
+{% if post.tags.all %}
+<div class="post-tags-preview">
+    {% for tag in post.tags.all|slice:":3" %}
+    <a href="{% url 'posts-by-tag' tag.slug %}" class="tag">
+        {{ tag.name }}
+    </a>
+    {% endfor %}
+    {% if post.tags.count > 3 %}
+    <span class="more-tags">+{{ post.tags.count|add:"-3" }} more</span>
+    {% endif %}
+</div>
+{% endif %}
+
+<style>
+.post-tags-preview {
+    margin: 15px 0;
+}
+
+.post-tags-preview .tag {
+    display: inline-block;
+    background: #e8f4fc;
+    color: #3498db;
+    padding: 4px 10px;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    text-decoration: none;
+    margin-right: 8px;
+    margin-bottom: 5px;
+    transition: all 0.3s ease;
+}
+
+.post-tags-preview .tag:hover {
+    background: #3498db;
+    color: white;
+    transform: translateY(-2px);
+}
+
+.more-tags {
+    color: #95a5a6;
+    font-size: 0.8rem;
+}
+</style>
 {% endblock %}

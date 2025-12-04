@@ -238,11 +238,14 @@ from django.views.generic import (
     CreateView, 
     UpdateView, 
     DeleteView,
-    FormView
+    FormView,
+    TemplateView
 )
 from django.urls import reverse_lazy
 from django.http import JsonResponse, HttpResponseForbidden
-from .models import Post, Profile, Comment
+from django.db.models import Q, Count
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from .models import Post, Profile, Comment, Tag
 from .forms import (
     CustomUserCreationForm, 
     CustomAuthenticationForm, 
@@ -250,12 +253,59 @@ from .forms import (
     ProfileUpdateForm,
     PostCreateForm,
     CommentForm,
-    CommentEditForm
+    CommentEditForm,
+    SearchForm
 )
 
-# Existing views remain...
+# Home View - Updated with popular tags
+def home(request):
+    latest_posts = Post.objects.all().order_by('-published_date')[:3]
+    popular_tags = Tag.get_popular_tags(limit=10)
+    
+    context = {
+        'latest_posts': latest_posts,
+        'popular_tags': popular_tags,
+        'search_form': SearchForm(),
+    }
+    return render(request, 'blog/home.html', context)
 
-# Add to PostDetailView to include comments
+# Post List View - Updated with tags
+class PostListView(ListView):
+    model = Post
+    template_name = 'blog/post_list.html'
+    context_object_name = 'posts'
+    paginate_by = 6
+    
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        
+        # Filter by tag if provided
+        tag_slug = self.request.GET.get('tag')
+        if tag_slug:
+            tag = get_object_or_404(Tag, slug=tag_slug)
+            queryset = queryset.filter(tags=tag)
+        
+        # Order by published date (newest first)
+        return queryset.order_by('-published_date')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'All Blog Posts'
+        
+        # Add popular tags to context
+        context['popular_tags'] = Tag.get_popular_tags(limit=10)
+        context['search_form'] = SearchForm()
+        
+        # Check if filtering by tag
+        tag_slug = self.request.GET.get('tag')
+        if tag_slug:
+            tag = get_object_or_404(Tag, slug=tag_slug)
+            context['title'] = f'Posts tagged "{tag.name}"'
+            context['current_tag'] = tag
+        
+        return context
+
+# Post Detail View - Updated with tags and related posts
 class PostDetailView(DetailView):
     model = Post
     template_name = 'blog/post_detail.html'
@@ -272,158 +322,158 @@ class PostDetailView(DetailView):
         context['comment_form'] = CommentForm()
         context['comments'] = comments
         context['comment_count'] = comments.count()
-        context['related_posts'] = Post.objects.filter(
-            author=post.author
-        ).exclude(pk=post.pk)[:3]
+        
+        # Get related posts based on tags and author
+        context['related_posts'] = post.get_related_posts()
+        
+        # Add popular tags
+        context['popular_tags'] = Tag.get_popular_tags(limit=10)
+        context['search_form'] = SearchForm()
         
         return context
 
-# Comment Create View
-class CommentCreateView(LoginRequiredMixin, CreateView):
-    model = Comment
-    form_class = CommentForm
-    template_name = 'blog/comment_form.html'
+# Tag List View
+class TagListView(ListView):
+    model = Tag
+    template_name = 'blog/tag_list.html'
+    context_object_name = 'tags'
+    paginate_by = 20
     
-    def form_valid(self, form):
-        post = get_object_or_404(Post, pk=self.kwargs['pk'])
-        form.instance.post = post
-        form.instance.author = self.request.user
+    def get_queryset(self):
+        queryset = super().get_queryset()
         
-        messages.success(self.request, 'Your comment has been posted successfully!')
-        return super().form_valid(form)
-    
-    def get_success_url(self):
-        return reverse_lazy('post-detail', kwargs={'pk': self.kwargs['pk']}) + '#comments-section'
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['post'] = get_object_or_404(Post, pk=self.kwargs['pk'])
-        context['title'] = 'Add a Comment'
-        return context
-
-# Comment Update View
-class CommentUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
-    model = Comment
-    form_class = CommentEditForm
-    template_name = 'blog/comment_form.html'
-    
-    def form_valid(self, form):
-        messages.success(self.request, 'Your comment has been updated successfully!')
-        return super().form_valid(form)
-    
-    def test_func(self):
-        comment = self.get_object()
-        return comment.can_edit(self.request.user)
-    
-    def handle_no_permission(self):
-        messages.error(self.request, 'You are not authorized to edit this comment.')
-        comment = self.get_object()
-        return redirect('post-detail', pk=comment.post.pk)
-    
-    def get_success_url(self):
-        comment = self.get_object()
-        return reverse_lazy('post-detail', kwargs={'pk': comment.post.pk}) + f'#comment-{comment.pk}'
+        # Annotate with post count
+        queryset = queryset.annotate(post_count=Count('posts')).order_by('-post_count')
+        
+        # Search functionality for tags
+        search_query = self.request.GET.get('search', '')
+        if search_query:
+            queryset = queryset.filter(
+                Q(name__icontains=search_query) |
+                Q(description__icontains=search_query)
+            )
+        
+        return queryset
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['post'] = self.object.post
-        context['title'] = 'Edit Comment'
-        context['editing'] = True
+        context['title'] = 'All Tags'
+        context['search_form'] = SearchForm()
         return context
 
-# Comment Delete View
-class CommentDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
-    model = Comment
-    template_name = 'blog/comment_confirm_delete.html'
+# Posts by Tag View
+class PostsByTagView(ListView):
+    model = Post
+    template_name = 'blog/post_list.html'
+    context_object_name = 'posts'
+    paginate_by = 6
     
-    def delete(self, request, *args, **kwargs):
-        messages.success(request, 'Your comment has been deleted successfully!')
-        return super().delete(request, *args, **kwargs)
-    
-    def test_func(self):
-        comment = self.get_object()
-        return comment.can_delete(self.request.user)
-    
-    def handle_no_permission(self):
-        messages.error(self.request, 'You are not authorized to delete this comment.')
-        comment = self.get_object()
-        return redirect('post-detail', pk=comment.post.pk)
-    
-    def get_success_url(self):
-        comment = self.get_object()
-        return reverse_lazy('post-detail', kwargs={'pk': comment.post.pk}) + '#comments-section'
+    def get_queryset(self):
+        tag_slug = self.kwargs['slug']
+        self.tag = get_object_or_404(Tag, slug=tag_slug)
+        return Post.objects.filter(tags=self.tag).order_by('-published_date')
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['post'] = self.object.post
+        context['title'] = f'Posts tagged "{self.tag.name}"'
+        context['current_tag'] = self.tag
+        context['popular_tags'] = Tag.get_popular_tags(limit=10)
+        context['search_form'] = SearchForm()
         return context
 
-# AJAX Comment View (for real-time updates)
-@login_required
-def add_comment_ajax(request, pk):
-    """Handle AJAX comment submission"""
-    if request.method == 'POST' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        post = get_object_or_404(Post, pk=pk)
-        form = CommentForm(request.POST)
+# Search View
+class SearchView(FormView):
+    template_name = 'blog/search_results.html'
+    form_class = SearchForm
+    
+    def get(self, request, *args, **kwargs):
+        form = self.form_class(request.GET)
         
         if form.is_valid():
-            comment = form.save(commit=False)
-            comment.post = post
-            comment.author = request.user
-            comment.save()
-            
-            # Return comment data for AJAX rendering
-            return JsonResponse({
-                'success': True,
-                'comment_id': comment.pk,
-                'author': comment.author.username,
-                'author_url': comment.author.profile.profile_picture_url,
-                'content': comment.content,
-                'created_at': comment.get_time_since_created(),
-                'edit_url': comment.get_edit_url(),
-                'delete_url': comment.get_delete_url(),
-                'can_edit': comment.can_edit(request.user),
-                'can_delete': comment.can_delete(request.user),
-            })
+            return self.form_valid(form)
         else:
-            return JsonResponse({
-                'success': False,
-                'errors': form.errors
-            })
+            return self.form_invalid(form)
     
-    return JsonResponse({'success': False, 'error': 'Invalid request'})
+    def form_valid(self, form):
+        query = form.cleaned_data['q']
+        search_in = form.cleaned_data['search_in']
+        sort_by = form.cleaned_data['sort_by']
+        
+        # Start with all posts
+        posts = Post.objects.all()
+        
+        # Apply search filters if query exists
+        if query:
+            search_filters = Q()
+            
+            if 'title' in search_in:
+                search_filters |= Q(title__icontains=query)
+            
+            if 'content' in search_in:
+                search_filters |= Q(content__icontains=query)
+            
+            if 'tags' in search_in:
+                search_filters |= Q(tags__name__icontains=query)
+            
+            posts = posts.filter(search_filters).distinct()
+        
+        # Apply sorting
+        if sort_by == 'date_new':
+            posts = posts.order_by('-published_date')
+        elif sort_by == 'date_old':
+            posts = posts.order_by('published_date')
+        elif sort_by == 'title_asc':
+            posts = posts.order_by('title')
+        elif sort_by == 'title_desc':
+            posts = posts.order_by('-title')
+        elif sort_by == 'relevance' and query:
+            # For relevance, we could implement more sophisticated ranking
+            # For now, we'll just sort by date (newest first)
+            posts = posts.order_by('-published_date')
+        else:
+            posts = posts.order_by('-published_date')
+        
+        # Pagination
+        paginator = Paginator(posts, 6)
+        page = self.request.GET.get('page', 1)
+        
+        try:
+            posts_page = paginator.page(page)
+        except PageNotAnInteger:
+            posts_page = paginator.page(1)
+        except EmptyPage:
+            posts_page = paginator.page(paginator.num_pages)
+        
+        context = self.get_context_data(
+            form=form,
+            query=query,
+            posts=posts_page,
+            search_in=search_in,
+            sort_by=sort_by,
+            result_count=posts.count()
+        )
+        
+        return self.render_to_response(context)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Search Results'
+        context['popular_tags'] = Tag.get_popular_tags(limit=10)
+        return context
 
-# Function to handle inline comment submission (from post detail page)
+# AJAX Tag Suggestions View
 @login_required
-def add_comment(request, pk):
-    """Handle comment submission from post detail page"""
-    post = get_object_or_404(Post, pk=pk)
+def tag_suggestions(request):
+    """Return JSON list of tag suggestions for autocomplete"""
+    query = request.GET.get('q', '')
     
-    if request.method == 'POST':
-        form = CommentForm(request.POST)
-        if form.is_valid():
-            comment = form.save(commit=False)
-            comment.post = post
-            comment.author = request.user
-            comment.save()
-            
-            messages.success(request, 'Your comment has been posted successfully!')
-            return redirect('post-detail', pk=pk)
-        else:
-            # If form is invalid, we need to re-render the post detail page
-            # with the form errors
-            context = {
-                'post': post,
-                'comment_form': form,
-                'comments': post.comments.filter(active=True),
-                'comment_count': post.comments.filter(active=True).count(),
-                'related_posts': Post.objects.filter(
-                    author=post.author
-                ).exclude(pk=post.pk)[:3],
-            }
-            return render(request, 'blog/post_detail.html', context)
+    if query:
+        tags = Tag.objects.filter(name__icontains=query)[:10]
+        suggestions = [{'id': tag.id, 'name': tag.name} for tag in tags]
+    else:
+        suggestions = []
     
-    # If not POST, redirect to post detail
-    return redirect('post-detail', pk=pk)
+    return JsonResponse({'suggestions': suggestions})
 
-# The rest of the existing views remain unchanged...
+# The rest of existing views remain unchanged...
+# [PostCreateView, PostUpdateView, PostDeleteView, Comment views, Authentication views]

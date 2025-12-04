@@ -6,23 +6,29 @@ urlpatterns = [
     # Home URL
     path('', views.home, name='home'),
     
-    # Blog Post URLs (Class-Based Views)
+    # Blog Post URLs
     path('posts/', views.PostListView.as_view(), name='post-list'),
     path('post/<int:pk>/', views.PostDetailView.as_view(), name='post-detail'),
     path('post/new/', views.PostCreateView.as_view(), name='post-create'),
     path('post/<int:pk>/edit/', views.PostUpdateView.as_view(), name='post-update'),
     path('post/<int:pk>/delete/', views.PostDeleteView.as_view(), name='post-delete'),
     
+    # Tag URLs
+    path('tags/', views.TagListView.as_view(), name='tag-list'),
+    path('tags/<slug:slug>/', views.PostsByTagView.as_view(), name='posts-by-tag'),
+    path('tag-suggestions/', views.tag_suggestions, name='tag-suggestions'),
+    
+    # Search URL
+    path('search/', views.SearchView.as_view(), name='search'),
+    
     # Comment URLs
     path('post/<int:pk>/comment/', views.add_comment, name='add-comment'),
     path('post/<int:pk>/comment/new/', views.CommentCreateView.as_view(), name='comment-create'),
     path('comment/<int:pk>/edit/', views.CommentUpdateView.as_view(), name='comment-edit'),
     path('comment/<int:pk>/delete/', views.CommentDeleteView.as_view(), name='comment-delete'),
-    
-    # AJAX Comment URL
     path('post/<int:pk>/comment/ajax/', views.add_comment_ajax, name='add-comment-ajax'),
     
-    # Authentication URLs (Function-Based Views)
+    # Authentication URLs
     path('register/', views.register, name='register'),
     path('login/', views.user_login, name='login'),
     path('logout/', views.user_logout, name='logout'),

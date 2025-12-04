@@ -1,129 +1,80 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Django Blog{% endblock %}</title>
-    {% load static %}
-    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
-    <!-- Font Awesome for icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" 
-          integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" 
-          crossorigin="anonymous" referrerpolicy="no-referrer" />
-</head>
-<body>
-    <header>
-        <nav>
-            <div class="nav-container">
-                <div class="nav-brand">
-                    <a href="{% url 'home' %}" class="brand-link">
-                        <i class="fas fa-blog"></i>
-                        <span>Django Blog</span>
-                    </a>
-                </div>
-                
-                <div class="nav-menu">
-                    <ul class="nav-links">
-                        <li><a href="{% url 'home' %}"><i class="fas fa-home"></i> Home</a></li>
-                        <li><a href="{% url 'post-list' %}"><i class="fas fa-newspaper"></i> Blog Posts</a></li>
-                        
-                        {% if user.is_authenticated %}
-                            <li><a href="{% url 'post-create' %}"><i class="fas fa-plus-circle"></i> New Post</a></li>
-                            <li class="dropdown">
-                                <a href="#" class="dropdown-toggle">
-                                    <i class="fas fa-user-circle"></i> 
-                                    <span>{{ user.username }}</span>
-                                    <i class="fas fa-chevron-down dropdown-arrow"></i>
-                                </a>
-                                <ul class="dropdown-menu">
-                                    <li><a href="{% url 'profile' %}"><i class="fas fa-user"></i> Profile</a></li>
-                                    <li><a href="{% url 'change-password' %}"><i class="fas fa-key"></i> Change Password</a></li>
-                                    <li class="divider"></li>
-                                    <li><a href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
-                                </ul>
-                            </li>
-                        {% else %}
-                            <li><a href="{% url 'login' %}"><i class="fas fa-sign-in-alt"></i> Login</a></li>
-                            <li><a href="{% url 'register' %}" class="register-btn"><i class="fas fa-user-plus"></i> Register</a></li>
-                        {% endif %}
-                    </ul>
-                    
-                    <!-- Mobile menu toggle -->
-                    <button class="mobile-menu-toggle" aria-label="Toggle menu">
-                        <i class="fas fa-bars"></i>
-                    </button>
-                </div>
-            </div>
-        </nav>
-    </header>
-
-    <div class="content">
-        {% if messages %}
-            {% for message in messages %}
-                <div class="alert alert-{{ message.tags }}">
-                    <div class="alert-content">
-                        {% if message.tags == 'success' %}
-                            <i class="fas fa-check-circle"></i>
-                        {% elif message.tags == 'error' or message.tags == 'danger' %}
-                            <i class="fas fa-exclamation-circle"></i>
-                        {% elif message.tags == 'warning' %}
-                            <i class="fas fa-exclamation-triangle"></i>
-                        {% elif message.tags == 'info' %}
-                            <i class="fas fa-info-circle"></i>
-                        {% endif %}
-                        <span>{{ message }}</span>
-                    </div>
-                    <button type="button" class="close" onclick="this.parentElement.style.display='none'" aria-label="Close">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-            {% endfor %}
-        {% endif %}
-        
-        {% block content %}
-        <!-- Page-specific content goes here -->
-        {% endblock %}
-    </div>
-
-    <footer>
-        <div class="footer-content">
-            <div class="footer-section">
-                <h3><i class="fas fa-blog"></i> Django Blog</h3>
-                <p>Share your thoughts and ideas with the world.</p>
-            </div>
-            
-            <div class="footer-section">
-                <h3>Quick Links</h3>
-                <ul>
-                    <li><a href="{% url 'home' %}"><i class="fas fa-home"></i> Home</a></li>
-                    <li><a href="{% url 'post-list' %}"><i class="fas fa-newspaper"></i> Blog Posts</a></li>
-                    {% if user.is_authenticated %}
-                        <li><a href="{% url 'post-create' %}"><i class="fas fa-plus"></i> New Post</a></li>
-                        <li><a href="{% url 'profile' %}"><i class="fas fa-user"></i> Profile</a></li>
-                    {% else %}
-                        <li><a href="{% url 'login' %}"><i class="fas fa-sign-in-alt"></i> Login</a></li>
-                        <li><a href="{% url 'register' %}"><i class="fas fa-user-plus"></i> Register</a></li>
-                    {% endif %}
-                </ul>
-            </div>
-            
-            <div class="footer-section">
-                <h3>Connect</h3>
-                <div class="social-links">
-                    <a href="#" aria-label="GitHub"><i class="fab fa-github"></i></a>
-                    <a href="#" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
-                    <a href="#" aria-label="LinkedIn"><i class="fab fa-linkedin"></i></a>
-                    <a href="#" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
-                </div>
-            </div>
+<!-- Search Form in Navigation -->
+<li class="search-nav">
+    <form method="get" action="{% url 'search' %}" class="nav-search-form">
+        <div class="input-group">
+            <input type="text" 
+                   name="q" 
+                   class="form-control" 
+                   placeholder="Search posts..."
+                   value="{{ request.GET.q|default:'' }}">
+            <button type="submit" class="btn btn-search">
+                <i class="fas fa-search"></i>
+            </button>
         </div>
-        
-        <div class="footer-bottom">
-            <p>&copy; 2025 Django Blog. All rights reserved.</p>
-            <p>Built with <i class="fas fa-heart" style="color: #e74c3c;"></i> and Django</p>
-        </div>
-    </footer>
+    </form>
+</li>
 
-    <script src="{% static 'js/scripts.js' %}"></script>
-</body>
-</html>
+<style>
+.search-nav {
+    margin-left: 20px;
+}
+
+.nav-search-form {
+    position: relative;
+}
+
+.nav-search-form .input-group {
+    display: flex;
+}
+
+.nav-search-form input {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    padding: 8px 15px;
+    width: 200px;
+    border-radius: 20px 0 0 20px;
+    transition: all 0.3s ease;
+}
+
+.nav-search-form input:focus {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.5);
+    outline: none;
+    width: 250px;
+}
+
+.nav-search-form input::placeholder {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.btn-search {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-left: none;
+    color: white;
+    padding: 8px 15px;
+    border-radius: 0 20px 20px 0;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-search:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+@media (max-width: 768px) {
+    .search-nav {
+        margin: 10px 0;
+        width: 100%;
+    }
+    
+    .nav-search-form input {
+        width: 100%;
+    }
+    
+    .nav-search-form input:focus {
+        width: 100%;
+    }
+}
+</style>

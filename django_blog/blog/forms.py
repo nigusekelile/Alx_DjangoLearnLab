@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
-from .models import Profile
+from .models import Profile, Post, Comment, Tag
 
 class CustomUserCreationForm(UserCreationForm):
     email = forms.EmailField(required=True, widget=forms.EmailInput(attrs={
@@ -19,13 +19,6 @@ class CustomUserCreationForm(UserCreationForm):
             self.fields[field_name].widget.attrs.update({
                 'class': 'form-control'
             })
-    
-    def save(self, commit=True):
-        user = super().save(commit=False)
-        user.email = self.cleaned_data['email']
-        if commit:
-            user.save()
-        return user
 
 class CustomAuthenticationForm(AuthenticationForm):
     def __init__(self, *args, **kwargs):
@@ -65,19 +58,22 @@ class ProfileUpdateForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for field_name in self.fields:
-            if field_name != 'bio':  # bio already has widget defined
+            if field_name != 'bio':
                 self.fields[field_name].widget.attrs.update({
                     'class': 'form-control'
                 })
 
-from django import forms
-from django.contrib.auth.models import User
-from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
-from .models import Profile, Post
-
-# Existing forms remain the same...
-
 class PostCreateForm(forms.ModelForm):
+    tags_input = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter tags separated by commas (e.g., django, python, web-development)',
+            'id': 'tags-input'
+        }),
+        help_text="Separate tags with commas"
+    )
+    
     class Meta:
         model = Post
         fields = ['title', 'content']
@@ -95,11 +91,11 @@ class PostCreateForm(forms.ModelForm):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        for field_name in self.fields:
-            if field_name not in self.Meta.widgets:
-                self.fields[field_name].widget.attrs.update({
-                    'class': 'form-control'
-                })
+        
+        # If editing existing post, pre-populate tags
+        if self.instance and self.instance.pk:
+            initial_tags = ', '.join(tag.name for tag in self.instance.tags.all())
+            self.fields['tags_input'].initial = initial_tags
     
     def clean_title(self):
         title = self.cleaned_data.get('title')
@@ -112,16 +108,31 @@ class PostCreateForm(forms.ModelForm):
         if len(content) < 20:
             raise forms.ValidationError('Content must be at least 20 characters long.')
         return content
-
-# Keep existing forms...
-
-
-from django import forms
-from django.contrib.auth.models import User
-from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
-from .models import Profile, Post, Comment
-
-# Existing forms remain...
+    
+    def save(self, commit=True):
+        post = super().save(commit=False)
+        
+        if commit:
+            post.save()
+            
+            # Clear existing tags
+            post.tags.clear()
+            
+            # Process and add new tags
+            tags_input = self.cleaned_data.get('tags_input', '')
+            if tags_input:
+                tag_names = [name.strip() for name in tags_input.split(',') if name.strip()]
+                for tag_name in tag_names:
+                    # Get or create tag
+                    tag, created = Tag.objects.get_or_create(
+                        name=tag_name.lower(),
+                        defaults={'name': tag_name.lower()}
+                    )
+                    post.tags.add(tag)
+            
+            post.save()
+        
+        return post
 
 class CommentForm(forms.ModelForm):
     class Meta:
@@ -139,8 +150,6 @@ class CommentForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['content'].label = ''
-        
-        # Add character counter
         self.fields['content'].widget.attrs.update({
             'oninput': 'updateCharCounter(this)'
         })
@@ -176,3 +185,41 @@ class CommentEditForm(forms.ModelForm):
         if len(content) > 1000:
             raise forms.ValidationError('Comment cannot exceed 1000 characters.')
         return content
+
+class SearchForm(forms.Form):
+    q = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Search posts by title, content, or tags...',
+            'aria-label': 'Search'
+        })
+    )
+    
+    search_in = forms.MultipleChoiceField(
+        required=False,
+        choices=[
+            ('title', 'Title'),
+            ('content', 'Content'),
+            ('tags', 'Tags'),
+        ],
+        widget=forms.CheckboxSelectMultiple(attrs={
+            'class': 'search-options'
+        }),
+        initial=['title', 'content', 'tags']
+    )
+    
+    sort_by = forms.ChoiceField(
+        required=False,
+        choices=[
+            ('relevance', 'Relevance'),
+            ('date_new', 'Date (Newest)'),
+            ('date_old', 'Date (Oldest)'),
+            ('title_asc', 'Title (A-Z)'),
+            ('title_desc', 'Title (Z-A)'),
+        ],
+        initial='relevance',
+        widget=forms.Select(attrs={
+            'class': 'form-control'
+        })
+    )

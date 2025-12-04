@@ -1,0 +1,484 @@
+{% extends 'blog/base.html' %}
+
+{% block title %}Search Results - Django Blog{% endblock %}
+
+{% block content %}
+<div class="search-results-container">
+    <div class="search-results-header">
+        <h1><i class="fas fa-search"></i> Search Results</h1>
+        
+        {% if query %}
+            <p class="search-query">Search for: "<strong>{{ query }}</strong>"</p>
+        {% endif %}
+    </div>
+    
+    <div class="search-filters">
+        <form method="get" class="search-advanced-form">
+            <div class="form-row">
+                <div class="form-group">
+                    <input type="text" 
+                           name="q" 
+                           class="form-control" 
+                           placeholder="Search posts..."
+                           value="{{ query|default:'' }}">
+                </div>
+                
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search"></i> Search
+                    </button>
+                    <a href="{% url 'post-list' %}" class="btn">
+                        <i class="fas fa-times"></i> Clear
+                    </a>
+                </div>
+            </div>
+            
+            <div class="form-row advanced-options">
+                <div class="form-group">
+                    <label>Search in:</label>
+                    <div class="search-options">
+                        {% for value, label in form.search_in.field.choices %}
+                        <label class="checkbox-label">
+                            <input type="checkbox" 
+                                   name="search_in" 
+                                   value="{{ value }}"
+                                   {% if value in search_in %}checked{% endif %}>
+                            {{ label }}
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Sort by:</label>
+                    <select name="sort_by" class="form-control">
+                        {% for value, label in form.sort_by.field.choices %}
+                        <option value="{{ value }}" {% if sort_by == value %}selected{% endif %}>
+                            {{ label }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </form>
+    </div>
+    
+    <div class="search-results-summary">
+        <p>
+            Found <strong>{{ result_count }}</strong> result{{ result_count|pluralize }}
+            {% if query %}for "<strong>{{ query }}</strong>"{% endif %}
+        </p>
+    </div>
+    
+    {% if posts %}
+        <div class="search-results-list">
+            {% for post in posts %}
+            <div class="search-result-card">
+                <div class="result-header">
+                    <h3>
+                        <a href="{% url 'post-detail' post.pk %}">
+                            {{ post.title }}
+                        </a>
+                    </h3>
+                    <div class="result-meta">
+                        <span class="author">
+                            <i class="fas fa-user"></i>
+                            {{ post.author.username }}
+                        </span>
+                        <span class="date">
+                            <i class="far fa-calendar"></i>
+                            {{ post.published_date|date:"F d, Y" }}
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="result-content">
+                    {% if query %}
+                        {% with content=post.content|lower %}
+                        {% with query_lower=query|lower %}
+                        {% if query_lower in content %}
+                            {% with start_index=content|find:query_lower %}
+                            {% with excerpt_start=start_index|add:"-100"|default:0 %}
+                            {% with excerpt_end=start_index|add:"200" %}
+                            <p>
+                                ...{{ post.content|slice:excerpt_start:excerpt_end|safe }}...
+                            </p>
+                            {% endwith %}
+                            {% endwith %}
+                            {% endwith %}
+                        {% else %}
+                            <p>{{ post.get_short_content }}</p>
+                        {% endif %}
+                        {% endwith %}
+                        {% endwith %}
+                    {% else %}
+                        <p>{{ post.get_short_content }}</p>
+                    {% endif %}
+                </div>
+                
+                {% if post.tags.all %}
+                <div class="result-tags">
+                    <i class="fas fa-tags"></i>
+                    {% for tag in post.tags.all %}
+                    <a href="{% url 'posts-by-tag' tag.slug %}" class="tag">
+                        {{ tag.name }}
+                    </a>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
+                <div class="result-actions">
+                    <a href="{% url 'post-detail' post.pk %}" class="btn btn-sm">
+                        Read More
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Pagination -->
+        {% if is_paginated %}
+        <div class="pagination">
+            {% if page_obj.has_previous %}
+                <a href="?q={{ query }}&page=1&search_in={{ search_in|join:',' }}&sort_by={{ sort_by }}" class="btn btn-sm">
+                    First
+                </a>
+                <a href="?q={{ query }}&page={{ page_obj.previous_page_number }}&search_in={{ search_in|join:',' }}&sort_by={{ sort_by }}" class="btn btn-sm">
+                    Previous
+                </a>
+            {% endif %}
+            
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                    <span class="btn btn-sm active">{{ num }}</span>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <a href="?q={{ query }}&page={{ num }}&search_in={{ search_in|join:',' }}&sort_by={{ sort_by }}" class="btn btn-sm">
+                        {{ num }}
+                    </a>
+                {% endif %}
+            {% endfor %}
+            
+            {% if page_obj.has_next %}
+                <a href="?q={{ query }}&page={{ page_obj.next_page_number }}&search_in={{ search_in|join:',' }}&sort_by={{ sort_by }}" class="btn btn-sm">
+                    Next
+                </a>
+                <a href="?q={{ query }}&page={{ page_obj.paginator.num_pages }}&search_in={{ search_in|join:',' }}&sort_by={{ sort_by }}" class="btn btn-sm">
+                    Last
+                </a>
+            {% endif %}
+        </div>
+        {% endif %}
+    {% else %}
+        <div class="no-results">
+            <i class="fas fa-search" style="font-size: 4rem; color: #bdc3c7; margin-bottom: 20px;"></i>
+            <h2>No Results Found</h2>
+            <p>
+                {% if query %}
+                    No posts match your search criteria. Try different keywords or broaden your search.
+                {% else %}
+                    Please enter a search term to find posts.
+                {% endif %}
+            </p>
+            
+            <div class="suggestions">
+                <h3>Suggestions:</h3>
+                <ul>
+                    <li>Try different keywords</li>
+                    <li>Check your spelling</li>
+                    <li>Broaden your search criteria</li>
+                    <li>Search in different fields (title, content, tags)</li>
+                </ul>
+            </div>
+            
+            <div class="popular-tags">
+                <h3>Browse by Popular Tags:</h3>
+                <div class="tags-list">
+                    {% for tag in popular_tags %}
+                    <a href="{% url 'posts-by-tag' tag.slug %}" class="tag">
+                        {{ tag.name }} ({{ tag.get_post_count }})
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<style>
+.search-results-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.search-results-header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.search-results-header h1 {
+    color: #2c3e50;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+}
+
+.search-query {
+    color: #7f8c8d;
+    font-size: 1.2rem;
+}
+
+.search-filters {
+    background: white;
+    border-radius: 10px;
+    padding: 30px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    margin-bottom: 40px;
+}
+
+.form-row {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.form-row .form-group {
+    flex: 1;
+}
+
+.advanced-options {
+    border-top: 1px solid #eee;
+    padding-top: 20px;
+}
+
+.search-options {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+}
+
+.search-results-summary {
+    text-align: center;
+    margin-bottom: 30px;
+    color: #7f8c8d;
+    font-size: 1.1rem;
+}
+
+.search-results-list {
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+    margin-bottom: 40px;
+}
+
+.search-result-card {
+    background: white;
+    border-radius: 10px;
+    padding: 30px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+}
+
+.search-result-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+}
+
+.result-header {
+    margin-bottom: 20px;
+}
+
+.result-header h3 {
+    margin: 0 0 10px 0;
+    font-size: 1.5rem;
+}
+
+.result-header h3 a {
+    color: #2c3e50;
+    text-decoration: none;
+}
+
+.result-header h3 a:hover {
+    color: #3498db;
+}
+
+.result-meta {
+    display: flex;
+    gap: 20px;
+    color: #7f8c8d;
+    font-size: 0.9rem;
+}
+
+.result-meta i {
+    margin-right: 5px;
+}
+
+.result-content {
+    color: #555;
+    line-height: 1.6;
+    margin-bottom: 20px;
+}
+
+.result-tags {
+    margin-bottom: 20px;
+}
+
+.result-tags i {
+    color: #95a5a6;
+    margin-right: 10px;
+}
+
+.tag {
+    display: inline-block;
+    background: #e8f4fc;
+    color: #3498db;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    text-decoration: none;
+    margin-right: 8px;
+    margin-bottom: 8px;
+    transition: all 0.3s ease;
+}
+
+.tag:hover {
+    background: #3498db;
+    color: white;
+    transform: translateY(-2px);
+}
+
+.result-actions {
+    text-align: right;
+}
+
+.no-results {
+    text-align: center;
+    padding: 60px 20px;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.no-results h2 {
+    color: #2c3e50;
+    margin-bottom: 10px;
+}
+
+.no-results p {
+    color: #7f8c8d;
+    margin-bottom: 30px;
+    font-size: 1.1rem;
+}
+
+.suggestions {
+    text-align: left;
+    max-width: 600px;
+    margin: 0 auto 40px;
+    background: #f8f9fa;
+    padding: 25px;
+    border-radius: 8px;
+}
+
+.suggestions h3 {
+    color: #2c3e50;
+    margin-bottom: 15px;
+}
+
+.suggestions ul {
+    list-style-type: none;
+    padding-left: 0;
+}
+
+.suggestions li {
+    padding: 8px 0;
+    color: #555;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.suggestions li:before {
+    content: "•";
+    color: #3498db;
+    font-size: 1.5rem;
+}
+
+.popular-tags {
+    text-align: center;
+}
+
+.popular-tags h3 {
+    color: #2c3e50;
+    margin-bottom: 20px;
+}
+
+.tags-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+}
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 40px;
+}
+
+.pagination .active {
+    background-color: #3498db;
+    color: white;
+    cursor: default;
+}
+
+@media (max-width: 768px) {
+    .form-row {
+        flex-direction: column;
+    }
+    
+    .search-options {
+        flex-direction: column;
+        gap: 10px;
+    }
+}
+</style>
+
+<script>
+// Highlight search terms in results
+document.addEventListener('DOMContentLoaded', function() {
+    const query = "{{ query|escapejs }}";
+    if (query) {
+        const results = document.querySelectorAll('.result-content p');
+        results.forEach(result => {
+            const text = result.innerHTML;
+            const regex = new RegExp(`(${query})`, 'gi');
+            const highlighted = text.replace(regex, '<mark class="search-highlight">$1</mark>');
+            result.innerHTML = highlighted;
+        });
+    }
+});
+
+// Add CSS for search highlight
+const style = document.createElement('style');
+style.textContent = `
+    .search-highlight {
+        background-color: #fff9e6;
+        padding: 2px 4px;
+        border-radius: 3px;
+        font-weight: bold;
+    }
+`;
+document.head.appendChild(style);
+</script>
+{% endblock %}
