@@ -9,7 +9,8 @@ from .serializers import (
     UserSerializer, 
     RegisterSerializer, 
     LoginSerializer,
-    ChangePasswordSerializer
+    ChangePasswordSerializer,
+    TokenSerializer
 )
 from .models import CustomUser
 
@@ -24,8 +25,8 @@ class RegisterView(generics.CreateAPIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
         
-        # Create token for the user
-        token, created = Token.objects.get_or_create(user=user)
+        # Get the token that was created in the serializer
+        token = Token.objects.get(user=user)
         
         return Response({
             "user": UserSerializer(user, context=self.get_serializer_context()).data,
@@ -62,12 +63,33 @@ class LogoutView(APIView):
     def post(self, request):
         # Delete the token
         try:
-            request.user.auth_token.delete()
-        except (AttributeError, Token.DoesNotExist):
-            pass
+            token = Token.objects.get(user=request.user)
+            token.delete()
+            token_message = "Token deleted successfully"
+        except Token.DoesNotExist:
+            token_message = "No token found for user"
         
         logout(request)
-        return Response({"message": "Successfully logged out"}, status=status.HTTP_200_OK)
+        return Response({
+            "message": "Successfully logged out",
+            "token_deleted": token_message
+        }, status=status.HTTP_200_OK)
+
+
+class TokenRetrieveView(APIView):
+    """View to retrieve current user's token."""
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        try:
+            token = Token.objects.get(user=request.user)
+            serializer = TokenSerializer(token)
+            return Response(serializer.data)
+        except Token.DoesNotExist:
+            # Create token if it doesn't exist
+            token = Token.objects.create(user=request.user)
+            serializer = TokenSerializer(token)
+            return Response(serializer.data)
 
 
 class UserProfileView(generics.RetrieveUpdateAPIView):
@@ -103,7 +125,7 @@ class ChangePasswordView(generics.UpdateAPIView):
             user.set_password(serializer.data.get("new_password"))
             user.save()
             
-            # Update token
+            # Update token - delete old and create new
             Token.objects.filter(user=user).delete()
             token = Token.objects.create(user=user)
             

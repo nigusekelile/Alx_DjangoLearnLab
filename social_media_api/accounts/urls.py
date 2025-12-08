@@ -3,6 +3,7 @@ from .views import (
     RegisterView,
     LoginView,
     LogoutView,
+    TokenRetrieveView,
     UserProfileView,
     ChangePasswordView,
     FollowUserView
@@ -13,6 +14,7 @@ urlpatterns = [
     path('register/', RegisterView.as_view(), name='register'),
     path('login/', LoginView.as_view(), name='login'),
     path('logout/', LogoutView.as_view(), name='logout'),
+    path('token/', TokenRetrieveView.as_view(), name='token-retrieve'),
     
     # User profile endpoints
     path('profile/', UserProfileView.as_view(), name='profile'),
