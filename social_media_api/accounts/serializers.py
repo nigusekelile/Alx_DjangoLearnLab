@@ -1,6 +1,7 @@
 from rest_framework import serializers
-from django.contrib.auth import authenticate
+from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.password_validation import validate_password
+from rest_framework.authtoken.models import Token
 from .models import CustomUser, UserProfile
 
 
@@ -40,19 +41,37 @@ class RegisterSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         if attrs['password'] != attrs['password2']:
             raise serializers.ValidationError({"password": "Password fields didn't match."})
+        
+        # Check if username already exists
+        if CustomUser.objects.filter(username=attrs['username']).exists():
+            raise serializers.ValidationError({"username": "Username already exists."})
+        
+        # Check if email already exists
+        if attrs.get('email') and CustomUser.objects.filter(email=attrs['email']).exists():
+            raise serializers.ValidationError({"email": "Email already exists."})
+            
         return attrs
     
     def create(self, validated_data):
+        # Remove password2 from validated data
         validated_data.pop('password2')
-        user = CustomUser.objects.create_user(
+        
+        # Use get_user_model() to create user
+        User = get_user_model()
+        user = User.objects.create_user(
             username=validated_data['username'],
             email=validated_data.get('email', ''),
             password=validated_data['password'],
             first_name=validated_data.get('first_name', ''),
             last_name=validated_data.get('last_name', '')
         )
+        
         # Create user profile
         UserProfile.objects.create(user=user)
+        
+        # Create token for the user
+        Token.objects.create(user=user)
+        
         return user
 
 
@@ -65,6 +84,7 @@ class LoginSerializer(serializers.Serializer):
         password = data.get('password')
         
         if username and password:
+            # Use authenticate to validate credentials
             user = authenticate(username=username, password=password)
             if user:
                 if not user.is_active:
@@ -90,3 +110,13 @@ class ChangePasswordSerializer(serializers.Serializer):
         if attrs['new_password'] != attrs['new_password2']:
             raise serializers.ValidationError({"new_password": "Password fields didn't match."})
         return attrs
+
+
+class TokenSerializer(serializers.ModelSerializer):
+    """Serializer for Token model"""
+    user = UserSerializer(read_only=True)
+    
+    class Meta:
+        model = Token
+        fields = ['key', 'user', 'created']
+        read_only_fields = ['key', 'user', 'created']
