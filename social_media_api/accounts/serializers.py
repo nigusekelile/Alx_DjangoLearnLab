@@ -56,9 +56,8 @@ class RegisterSerializer(serializers.ModelSerializer):
         # Remove password2 from validated data
         validated_data.pop('password2')
         
-        # Use get_user_model() to create user
-        User = get_user_model()
-        user = User.objects.create_user(
+        # Use get_user_model().objects.create_user() as specified in requirements
+        user = get_user_model().objects.create_user(
             username=validated_data['username'],
             email=validated_data.get('email', ''),
             password=validated_data['password'],
