@@ -23,13 +23,34 @@ class StandardResultsSetPagination(PageNumberPagination):
 
 class PostViewSet(viewsets.ModelViewSet):
     """ViewSet for viewing and editing posts."""
-    queryset = Post.objects.filter(is_published=True).select_related('author').prefetch_related('likes', 'comments')
+    serializer_class = PostSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
     pagination_class = StandardResultsSetPagination
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['title', 'content']
     ordering_fields = ['created_at', 'updated_at', 'likes_count']
     ordering = ['-created_at']
+    
+    def get_queryset(self):
+        """Return the queryset for posts."""
+        # Use Post.objects.all() as specified in requirements
+        queryset = Post.objects.all().filter(is_published=True).select_related('author').prefetch_related('likes', 'comments')
+        
+        author = self.request.query_params.get('author')
+        search_query = self.request.query_params.get('search')
+        
+        # Filter by author if provided
+        if author:
+            queryset = queryset.filter(author__username=author)
+        
+        # Filter by search query if provided
+        if search_query:
+            queryset = queryset.filter(
+                Q(title__icontains=search_query) |
+                Q(content__icontains=search_query)
+            )
+        
+        return queryset
     
     def get_serializer_class(self):
         """Return appropriate serializer class based on action."""
@@ -38,24 +59,6 @@ class PostViewSet(viewsets.ModelViewSet):
         elif self.action == 'retrieve':
             return PostDetailSerializer
         return PostSerializer
-    
-    def get_queryset(self):
-        """Optionally filter posts by author."""
-        queryset = super().get_queryset()
-        author = self.request.query_params.get('author')
-        
-        if author:
-            queryset = queryset.filter(author__username=author)
-        
-        # Filter by search query if provided
-        search_query = self.request.query_params.get('search')
-        if search_query:
-            queryset = queryset.filter(
-                Q(title__icontains=search_query) |
-                Q(content__icontains=search_query)
-            )
-        
-        return queryset
     
     def perform_create(self, serializer):
         """Set the author to the current user when creating a post."""
@@ -84,9 +87,11 @@ class PostViewSet(viewsets.ModelViewSet):
     def comments(self, request, pk=None):
         """Get comments for a specific post."""
         post = self.get_object()
-        comments = post.comments.all().select_related('author')
-        page = self.paginate_queryset(comments)
         
+        # Get comments for this post
+        comments = Comment.objects.all().filter(post=post).select_related('author')
+        
+        page = self.paginate_queryset(comments)
         if page is not None:
             serializer = CommentSerializer(page, many=True)
             return self.get_paginated_response(serializer.data)
@@ -97,19 +102,22 @@ class PostViewSet(viewsets.ModelViewSet):
 
 class CommentViewSet(viewsets.ModelViewSet):
     """ViewSet for viewing and editing comments."""
-    queryset = Comment.objects.all().select_related('author', 'post')
     serializer_class = CommentSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
     pagination_class = StandardResultsSetPagination
     
     def get_queryset(self):
-        """Optionally filter comments by post or author."""
-        queryset = super().get_queryset()
-        post_id = self.request.query_params.get('post')
-        author = self.request.query_params.get('author')
+        """Return the queryset for comments."""
+        # Use Comment.objects.all() as specified in requirements
+        queryset = Comment.objects.all().select_related('author', 'post')
         
+        # Filter by post ID if provided
+        post_id = self.request.query_params.get('post')
         if post_id:
             queryset = queryset.filter(post_id=post_id)
+        
+        # Filter by author username if provided
+        author = self.request.query_params.get('author')
         if author:
             queryset = queryset.filter(author__username=author)
         
@@ -142,9 +150,11 @@ class CommentViewSet(viewsets.ModelViewSet):
     def replies(self, request, pk=None):
         """Get replies for a specific comment."""
         comment = self.get_object()
-        replies = comment.replies.all().select_related('author')
-        page = self.paginate_queryset(replies)
         
+        # Get replies for this comment
+        replies = Comment.objects.all().filter(parent_comment=comment).select_related('author')
+        
+        page = self.paginate_queryset(replies)
         if page is not None:
             serializer = CommentSerializer(page, many=True)
             return self.get_paginated_response(serializer.data)
