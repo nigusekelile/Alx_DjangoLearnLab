@@ -1,53 +1,20 @@
 from rest_framework import viewsets, permissions, filters, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from rest_framework.pagination import PageNumberPagination
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Q
+from django.contrib.auth import get_user_model
 from .models import Post, Comment
 from .serializers import (
     PostSerializer, 
     PostListSerializer,
     PostDetailSerializer,
-    CommentSerializer
+    CommentSerializer,
+    FeedPostSerializer
 )
-from .permissions import IsOwnerOrReadOnly
 
-
-# Add these imports at the top of posts/views.py if not already present
-from django.contrib.auth import get_user_model
-from rest_framework.views import APIView
-from rest_framework.pagination import PageNumberPagination
-from .serializers import FeedPostSerializer
-
-
-# Add this view to posts/views.py
-
-class FeedView(APIView):
-    """View to get the feed of posts from followed users."""
-    permission_classes = [permissions.IsAuthenticated]
-    
-    def get(self, request):
-        """Get feed posts with pagination."""
-        # Get users that the current user is following
-        following_users = request.user.following.all()
-        
-        # Get posts from followed users that are published
-        feed_posts = Post.objects.filter(
-            author__in=following_users,
-            is_published=True
-        ).select_related('author').prefetch_related('likes', 'comments').order_by('-created_at')
-        
-        # Apply pagination
-        paginator = StandardResultsSetPagination()
-        page = paginator.paginate_queryset(feed_posts, request)
-        
-        if page is not None:
-            serializer = FeedPostSerializer(page, many=True, context={'request': request})
-            return paginator.get_paginated_response(serializer.data)
-        
-        serializer = FeedPostSerializer(feed_posts, many=True, context={'request': request})
-        return Response(serializer.data)
 
 class StandardResultsSetPagination(PageNumberPagination):
     """Custom pagination class."""
@@ -195,4 +162,33 @@ class CommentViewSet(viewsets.ModelViewSet):
             return self.get_paginated_response(serializer.data)
         
         serializer = CommentSerializer(replies, many=True)
+        return Response(serializer.data)
+
+
+class FeedView(APIView):
+    """View to get the feed of posts from followed users."""
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get(self, request):
+        """Get feed posts with pagination."""
+        # Get users that the current user is following
+        current_user = request.user
+        following_users = current_user.following.all()
+        
+        # Get posts from followed users that are published
+        # Use the exact pattern: Post.objects.filter(author__in=following_users).order_by
+        feed_posts = Post.objects.filter(author__in=following_users).order_by('-created_at')
+        
+        # Only include published posts
+        feed_posts = feed_posts.filter(is_published=True)
+        
+        # Apply pagination
+        paginator = StandardResultsSetPagination()
+        page = paginator.paginate_queryset(feed_posts, request)
+        
+        if page is not None:
+            serializer = FeedPostSerializer(page, many=True, context={'request': request})
+            return paginator.get_paginated_response(serializer.data)
+        
+        serializer = FeedPostSerializer(feed_posts, many=True, context={'request': request})
         return Response(serializer.data)
