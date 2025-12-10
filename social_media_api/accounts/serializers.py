@@ -119,3 +119,60 @@ class TokenSerializer(serializers.ModelSerializer):
         model = Token
         fields = ['key', 'user', 'created']
         read_only_fields = ['key', 'user', 'created']
+
+# Add these serializers to the end of the file
+
+class UserFollowSerializer(serializers.ModelSerializer):
+    """Lightweight serializer for follow operations."""
+    followers_count = serializers.IntegerField(read_only=True)
+    following_count = serializers.IntegerField(read_only=True)
+    is_following = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = get_user_model()
+        fields = ['id', 'username', 'profile_picture', 'followers_count', 'following_count', 'is_following']
+    
+    def get_is_following(self, obj):
+        """Check if the current user is following this user."""
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return request.user.is_following(obj)
+        return False
+
+
+class FollowActionSerializer(serializers.Serializer):
+    """Serializer for follow/unfollow actions."""
+    action = serializers.ChoiceField(choices=['follow', 'unfollow'])
+    
+    def validate(self, data):
+        user_to_follow = self.context.get('user_to_follow')
+        current_user = self.context.get('current_user')
+        
+        if user_to_follow == current_user:
+            raise serializers.ValidationError("You cannot follow yourself.")
+        
+        if data['action'] == 'follow' and current_user.is_following(user_to_follow):
+            raise serializers.ValidationError("You are already following this user.")
+        
+        if data['action'] == 'unfollow' and not current_user.is_following(user_to_follow):
+            raise serializers.ValidationError("You are not following this user.")
+        
+        return data
+
+
+class UserFollowersSerializer(serializers.ModelSerializer):
+    """Serializer for listing a user's followers."""
+    followers = UserFollowSerializer(many=True, read_only=True)
+    
+    class Meta:
+        model = get_user_model()
+        fields = ['id', 'username', 'followers_count', 'followers']
+
+
+class UserFollowingSerializer(serializers.ModelSerializer):
+    """Serializer for listing who a user is following."""
+    following = UserFollowSerializer(many=True, read_only=True)
+    
+    class Meta:
+        model = get_user_model()
+        fields = ['id', 'username', 'following_count', 'following']

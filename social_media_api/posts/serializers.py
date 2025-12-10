@@ -84,3 +84,13 @@ class PostListSerializer(serializers.ModelSerializer):
 class PostDetailSerializer(PostSerializer):
     """Serializer for detailed post view."""
     pass  # Same as PostSerializer, can be extended if needed
+
+# Add to posts/serializers.py
+
+class FeedPostSerializer(PostSerializer):
+    """Serializer for feed posts with additional follow context."""
+    class Meta(PostSerializer.Meta):
+        fields = [
+            'id', 'author', 'title', 'content', 'image',
+            'created_at', 'likes_count', 'comments_count'
+        ]

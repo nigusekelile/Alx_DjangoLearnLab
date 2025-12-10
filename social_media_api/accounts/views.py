@@ -14,6 +14,107 @@ from .serializers import (
 )
 from .models import CustomUser
 
+# Add these imports at the top if not already present
+from rest_framework.decorators import action
+from .serializers import (
+    UserFollowSerializer, 
+    FollowActionSerializer,
+    UserFollowersSerializer,
+    UserFollowingSerializer
+)
+
+# Add these views to the accounts/views.py
+
+class FollowManagementView(APIView):
+    """View for managing user follows."""
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request, user_id):
+        """Follow or unfollow a user."""
+        user_to_follow = get_object_or_404(get_user_model(), id=user_id)
+        current_user = request.user
+        
+        if user_to_follow == current_user:
+            return Response(
+                {"error": "You cannot follow yourself."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Check if already following
+        is_following = current_user.is_following(user_to_follow)
+        
+        if is_following:
+            # Unfollow
+            current_user.unfollow(user_to_follow)
+            action = 'unfollowed'
+        else:
+            # Follow
+            current_user.follow(user_to_follow)
+            action = 'followed'
+        
+        return Response({
+            "action": action,
+            "user_id": user_id,
+            "username": user_to_follow.username,
+            "following_count": current_user.following_count,
+            "followers_count": user_to_follow.followers_count,
+            "is_following": not is_following  # New state
+        })
+
+
+class UserFollowersView(generics.RetrieveAPIView):
+    """View to get a user's followers."""
+    queryset = get_user_model().objects.all()
+    serializer_class = UserFollowersSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    
+    def get_object(self):
+        user_id = self.kwargs.get('user_id')
+        return get_object_or_404(get_user_model(), id=user_id)
+
+
+class UserFollowingView(generics.RetrieveAPIView):
+    """View to get who a user is following."""
+    queryset = get_user_model().objects.all()
+    serializer_class = UserFollowingSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    
+    def get_object(self):
+        user_id = self.kwargs.get('user_id')
+        return get_object_or_404(get_user_model(), id=user_id)
+
+
+class UserSearchView(generics.ListAPIView):
+    """View to search for users."""
+    serializer_class = UserFollowSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        queryset = get_user_model().objects.all()
+        query = self.request.query_params.get('q', '')
+        
+        if query:
+            queryset = queryset.filter(
+                models.Q(username__icontains=query) |
+                models.Q(first_name__icontains=query) |
+                models.Q(last_name__icontains=query)
+            )
+        
+        # Exclude current user
+        queryset = queryset.exclude(id=self.request.user.id)
+        
+        return queryset
+    
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        page = self.paginate_queryset(queryset)
+        
+        if page is not None:
+            serializer = self.get_serializer(page, many=True, context={'request': request})
+            return self.get_paginated_response(serializer.data)
+        
+        serializer = self.get_serializer(queryset, many=True, context={'request': request})
+        return Response(serializer.data)
 
 class RegisterView(generics.CreateAPIView):
     """View for user registration."""
