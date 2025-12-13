@@ -299,3 +299,46 @@ class UserSearchView(generics.GenericAPIView):
         
         serializer = self.get_serializer(queryset, many=True, context={'request': request})
         return Response(serializer.data)
+
+# Add import at the top
+from notifications.notify import NotificationManager
+
+class FollowUserView(generics.GenericAPIView):
+    """View for following/unfollowing users using generics.GenericAPIView."""
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request, user_id):
+        """Follow or unfollow a user."""
+        # Use CustomUser.objects.all() as specified
+        user_to_follow = get_object_or_404(CustomUser.objects.all(), id=user_id)
+        current_user = request.user
+        
+        if user_to_follow == current_user:
+            return Response(
+                {"error": "You cannot follow yourself."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Check if already following
+        is_following = current_user.is_following(user_to_follow)
+        
+        if is_following:
+            # Unfollow
+            current_user.unfollow(user_to_follow)
+            action = 'unfollowed'
+        else:
+            # Follow
+            current_user.follow(user_to_follow)
+            action = 'followed'
+            
+            # Create notification for followed user
+            NotificationManager.notify_follow(current_user, user_to_follow)
+        
+        return Response({
+            "action": action,
+            "user_id": user_id,
+            "username": user_to_follow.username,
+            "following_count": current_user.following_count,
+            "followers_count": user_to_follow.followers_count,
+            "is_following": not is_following
+        })

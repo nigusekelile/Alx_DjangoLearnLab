@@ -94,3 +94,28 @@ class FeedPostSerializer(PostSerializer):
             'id', 'author', 'title', 'content', 'image',
             'created_at', 'likes_count', 'comments_count'
         ]
+
+# Add this to posts/serializers.py
+
+class LikeSerializer(serializers.ModelSerializer):
+    """Serializer for likes."""
+    user = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Like
+        fields = ['id', 'user', 'post', 'created_at']
+        read_only_fields = ['id', 'created_at']
+    
+    def get_user(self, obj):
+        """Get user info for like."""
+        from accounts.serializers import UserSerializer
+        return UserSerializer(obj.user).data
+
+
+# Update PostSerializer to include likes detail
+class PostDetailSerializer(PostSerializer):
+    """Serializer for detailed post view."""
+    post_likes = LikeSerializer(many=True, read_only=True, source='post_likes.all')
+    
+    class Meta(PostSerializer.Meta):
+        fields = PostSerializer.Meta.fields + ['post_likes']
