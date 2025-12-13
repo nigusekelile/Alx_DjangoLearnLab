@@ -1,12 +1,13 @@
-from rest_framework import viewsets, permissions, filters, status
+from rest_framework import viewsets, permissions, filters, status, generics
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.pagination import PageNumberPagination
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Q
+from django.shortcuts import get_object_or_404
 from django.contrib.auth import get_user_model
-from .models import Post, Comment
+from .models import Post, Comment, Like
 from .serializers import (
     PostSerializer, 
     PostListSerializer,
@@ -68,38 +69,32 @@ class PostViewSet(viewsets.ModelViewSet):
     
     @action(detail=True, methods=['post'])
     def like(self, request, pk=None):
-        """Like or unlike a post."""
+        """Like or unlike a post (toggle)."""
         post = self.get_object()
         user = request.user
         
-        if post.likes.filter(id=user.id).exists():
-            post.likes.remove(user)
+        # Check if already liked
+        like = Like.objects.filter(user=user, post=post).first()
+        
+        if like:
+            # Unlike
+            like.delete()
             liked = False
+            message = "Post unliked"
         else:
-            post.likes.add(user)
+            # Like
+            Like.objects.create(user=user, post=post)
             liked = True
+            message = "Post liked"
+            
+            # Create notification (only when liking)
+            NotificationManager.notify_like(user, post)
         
         return Response({
             'liked': liked,
-            'likes_count': post.likes_count,
-            'message': 'Post liked' if liked else 'Post unliked'
+            'likes_count': post.likes.count(),
+            'message': message
         })
-    
-    @action(detail=True, methods=['get'])
-    def comments(self, request, pk=None):
-        """Get comments for a specific post."""
-        post = self.get_object()
-        
-        # Get comments for this post
-        comments = Comment.objects.all().filter(post=post).select_related('author')
-        
-        page = self.paginate_queryset(comments)
-        if page is not None:
-            serializer = CommentSerializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
-        
-        serializer = CommentSerializer(comments, many=True)
-        return Response(serializer.data)
 
 
 class CommentViewSet(viewsets.ModelViewSet):
@@ -127,7 +122,10 @@ class CommentViewSet(viewsets.ModelViewSet):
     
     def perform_create(self, serializer):
         """Set the author to the current user when creating a comment."""
-        serializer.save(author=self.request.user)
+        comment = serializer.save(author=self.request.user)
+        
+        # Create notification for post author
+        NotificationManager.notify_comment(self.request.user, comment)
     
     @action(detail=True, methods=['post'])
     def like(self, request, pk=None):
@@ -193,11 +191,11 @@ class FeedView(APIView):
         serializer = FeedPostSerializer(feed_posts, many=True, context={'request': request})
         return Response(serializer.data)
 
-# Add these imports at the top
-from .models import Like
+
+# Add these imports at the top of the file if not already present
+from notifications.models import Notification
 from notifications.notify import NotificationManager
 
-# Add this view to posts/views.py
 
 class LikePostView(APIView):
     """View to like a post."""
@@ -205,7 +203,8 @@ class LikePostView(APIView):
     
     def post(self, request, pk):
         """Like a post."""
-        post = get_object_or_404(Post, id=pk, is_published=True)
+        # Use generics.get_object_or_404(Post, pk=pk) as specified
+        post = generics.get_object_or_404(Post, pk=pk)
         user = request.user
         
         # Check if already liked
@@ -215,11 +214,17 @@ class LikePostView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Create like
-        like = Like.objects.create(user=user, post=post)
+        # Use Like.objects.get_or_create(user=request.user, post=post) as specified
+        like, created = Like.objects.get_or_create(user=request.user, post=post)
         
-        # Create notification
-        NotificationManager.notify_like(user, post)
+        # Create notification using Notification.objects.create as specified
+        if user != post.author:  # Don't notify if user likes their own post
+            Notification.objects.create(
+                recipient=post.author,
+                actor=user,
+                verb='like',
+                message=f"{user.username} liked your post: {post.title[:50]}..."
+            )
         
         return Response({
             "status": "success",
@@ -235,7 +240,8 @@ class UnlikePostView(APIView):
     
     def post(self, request, pk):
         """Unlike a post."""
-        post = get_object_or_404(Post, id=pk)
+        # Use generics.get_object_or_404(Post, pk=pk) as specified
+        post = generics.get_object_or_404(Post, pk=pk)
         user = request.user
         
         # Check if liked
@@ -260,12 +266,12 @@ class UnlikePostView(APIView):
 
 class PostLikesListView(generics.ListAPIView):
     """View to list users who liked a post."""
-    serializer_class = serializers.SerializerMethodField  # We'll use custom response
+    serializer_class = CommentSerializer  # Temporary, we'll override the method
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     
     def get(self, request, pk):
         """Get users who liked the post."""
-        post = get_object_or_404(Post, id=pk, is_published=True)
+        post = generics.get_object_or_404(Post, pk=pk, is_published=True)
         
         # Get likes with users
         likes = Like.objects.filter(post=post).select_related('user')
@@ -286,47 +292,3 @@ class PostLikesListView(generics.ListAPIView):
             'likes_count': post.likes_count,
             'likers': likers
         })
-
-
-# Update the PostViewSet's like action to use the Like model
-class PostViewSet(viewsets.ModelViewSet):
-    # ... existing code ...
-    
-    @action(detail=True, methods=['post'])
-    def like(self, request, pk=None):
-        """Like or unlike a post (toggle)."""
-        post = self.get_object()
-        user = request.user
-        
-        # Check if already liked
-        like = Like.objects.filter(user=user, post=post).first()
-        
-        if like:
-            # Unlike
-            like.delete()
-            liked = False
-            message = "Post unliked"
-        else:
-            # Like
-            Like.objects.create(user=user, post=post)
-            liked = True
-            message = "Post liked"
-            
-            # Create notification (only when liking)
-            NotificationManager.notify_like(user, post)
-        
-        return Response({
-            'liked': liked,
-            'likes_count': post.likes.count(),
-            'message': message
-        })
-
-class CommentViewSet(viewsets.ModelViewSet):
-    # ... existing code ...
-    
-    def perform_create(self, serializer):
-        """Set the author to the current user when creating a comment and create notification."""
-        comment = serializer.save(author=self.request.user)
-        
-        # Create notification for post author
-        NotificationManager.notify_comment(self.request.user, comment)
