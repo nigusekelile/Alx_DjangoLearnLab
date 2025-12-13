@@ -40,12 +40,14 @@ class Notification(models.Model):
     message = models.CharField(max_length=255)
     is_read = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+    timestamp = models.DateTimeField(auto_now_add=True)  # Add timestamp field as specified
     
     class Meta:
         ordering = ['-created_at']
         indexes = [
             models.Index(fields=['recipient', 'is_read', 'created_at']),
             models.Index(fields=['created_at']),
+            models.Index(fields=['timestamp']),  # Add index for timestamp
         ]
     
     def __str__(self):
@@ -65,7 +67,7 @@ class Notification(models.Model):
     def time_since(self):
         """Return human-readable time since notification."""
         now = timezone.now()
-        diff = now - self.created_at
+        diff = now - self.timestamp  # Use timestamp field
         
         if diff.days > 365:
             years = diff.days // 365
